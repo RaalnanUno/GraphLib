@@ -1,7 +1,14 @@
 namespace GraphLib.ConsoleApp.Cli;
 
+/// <summary>
+/// Static helper class for printing help text and usage instructions to the console.
+/// </summary>
 public static class Commands
 {
+    /// <summary>
+    /// Prints the full help text showing all available commands and options.
+    /// Called by the "help", "--help", or "-h" command.
+    /// </summary>
     public static void PrintHelp()
     {
         System.Console.WriteLine(@"

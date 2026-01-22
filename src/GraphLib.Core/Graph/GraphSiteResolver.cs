@@ -3,12 +3,24 @@ using System.Text.Json;
 
 namespace GraphLib.Core.Graph;
 
+/// <summary>
+/// Resolves SharePoint site URL to its Microsoft Graph Site ID.
+/// Uses the pattern: GET /sites/{hostname}:{server-relative-path}
+/// Example: https://tenant.sharepoint.com/sites/SiteName → siteId="tenant.sharepoint.com:/sites/SiteName:"
+/// </summary>
 public sealed class GraphSiteResolver
 {
     private readonly GraphClient _graph;
 
     public GraphSiteResolver(GraphClient graph) => _graph = graph;
 
+    /// <summary>
+    /// Looks up a SharePoint site by URL and returns its Graph ID.
+    /// </summary>
+    /// <param name="siteUrl">Full SharePoint site URL (must include path, e.g., /sites/SiteName)</param>
+    /// <param name="clientRequestId">Request ID for tracking</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Tuple of (siteId, rawJsonResponse) for later use in subsequent Graph calls</returns>
     public async Task<(string siteId, string rawJson)> ResolveSiteAsync(string siteUrl, string clientRequestId, CancellationToken ct)
     {
         var uri = new Uri(siteUrl);
@@ -38,6 +50,10 @@ public sealed class GraphSiteResolver
     }
 }
 
+/// <summary>
+/// Exception thrown when a Microsoft Graph API call fails.
+/// Captures HTTP status, response body, and request/response IDs for debugging.
+/// </summary>
 public sealed class GraphRequestException : Exception
 {
     public System.Net.HttpStatusCode StatusCode { get; }

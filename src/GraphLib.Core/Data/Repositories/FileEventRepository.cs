@@ -2,12 +2,21 @@ using Microsoft.Data.Sqlite;
 
 namespace GraphLib.Core.Data.Repositories;
 
+/// <summary>
+/// Manages FileEvents table in SQLite.
+/// A "file event" represents the processing of a single file within a run.
+/// Tracks the file's input size, Graph item IDs, and success/failure status.
+/// </summary>
 public sealed class FileEventRepository
 {
     private readonly DbConnectionFactory _factory;
 
     public FileEventRepository(DbConnectionFactory factory) => _factory = factory;
 
+    /// <summary>
+    /// Inserts a new file event record at the start of file processing.
+    /// Returns the FileEventId for later reference in logs.
+    /// </summary>
     public long InsertFileStarted(
         string runId,
         string filePath,
@@ -31,9 +40,14 @@ SELECT last_insert_rowid();";
         cmd.Parameters.AddWithValue("$SizeBytes", sizeBytes);
         cmd.Parameters.AddWithValue("$StartedAtUtc", startedAtUtc.UtcDateTime.ToString("O"));
 
+        // Return the auto-generated ID of the newly inserted row
         return (long)cmd.ExecuteScalar()!;
     }
 
+    /// <summary>
+    /// Updates file event record when processing finishes.
+    /// Stores Graph item IDs and final success status.
+    /// </summary>
     public void UpdateFileFinished(
         long fileEventId,
         DateTimeOffset endedAtUtc,
@@ -55,6 +69,7 @@ WHERE Id = $Id;";
         cmd.Parameters.AddWithValue("$Id", fileEventId);
         cmd.Parameters.AddWithValue("$EndedAtUtc", endedAtUtc.UtcDateTime.ToString("O"));
         cmd.Parameters.AddWithValue("$Success", success ? 1 : 0);
+        // Use DBNull.Value for NULL columns (nullable strings)
         cmd.Parameters.AddWithValue("$DriveId", (object?)driveId ?? DBNull.Value);
         cmd.Parameters.AddWithValue("$TempItemId", (object?)tempItemId ?? DBNull.Value);
         cmd.Parameters.AddWithValue("$PdfItemId", (object?)pdfItemId ?? DBNull.Value);

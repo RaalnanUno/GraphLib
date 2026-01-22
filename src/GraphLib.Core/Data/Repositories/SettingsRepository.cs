@@ -4,6 +4,11 @@ using Microsoft.Data.Sqlite;
 
 namespace GraphLib.Core.Data.Repositories;
 
+/// <summary>
+/// Manages AppSettings table in SQLite.
+/// Loads application configuration from the database (row Id=1).
+/// Integrates with ISecretProvider for secret resolution/decryption.
+/// </summary>
 public sealed class SettingsRepository
 {
     private readonly DbConnectionFactory _factory;
@@ -15,6 +20,10 @@ public sealed class SettingsRepository
         _secretProvider = secretProvider;
     }
 
+    /// <summary>
+    /// Loads AppSettings from the database (Id=1).
+    /// </summary>
+    /// <returns>Populated GraphLibSettings object</returns>
     public GraphLibSettings Get()
     {
         using var conn = _factory.Open();
@@ -32,11 +41,15 @@ WHERE Id = 1;
         if (!r.Read())
             throw new InvalidOperationException("No AppSettings row found. Run `graphlib init` first.");
 
+        // Parse conflict behavior string to enum
         var conflict = ConflictBehaviorExtensions.Parse(r.GetString(5), ConflictBehavior.Replace);
 
+        // Get raw secret from DB and let ISecretProvider decrypt/resolve it
         var rawSecret = r.GetString(11);
         var resolvedSecret = _secretProvider.GetSecret("ClientSecret", rawSecret);
 
+        // Map database columns to settings object
+        // Note: SQLite stores booleans as integers (0/1), so use != 0 to convert
         return new GraphLibSettings
         {
             SiteUrl = r.GetString(0),
@@ -57,6 +70,10 @@ WHERE Id = 1;
         };
     }
 
+    /// <summary>
+    /// Updates AppSettings row (Id=1) with new values.
+    /// Used when user modifies settings.
+    /// </summary>
     public void Update(GraphLibSettings s)
     {
         using var conn = _factory.Open();
