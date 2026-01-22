@@ -33,3 +33,5 @@ yarn-error.log*
 /src/GraphLib.Console/bin/
 /src/GraphLib.Core/obj/
 /src/GraphLib.Console/obj/
+/src/GraphLib.Core.Tests/obj/
+/src/GraphLib.Core.Tests/bin/
