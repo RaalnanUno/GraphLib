@@ -29,4 +29,5 @@ Creates DB, schema, reference tables, and a default `AppSettings` row (Id=1):
 dotnet run --project .\GraphLib.Console\GraphLib.Console.csproj -- init --db ".\Data\GraphLib.db"
 
 ## Basic Run Sample
-dotnet run -c Release --project .\GraphLib.Console\GraphLib.Console.csproj -- run ` --file "C:\Path\To\File.docx"
+cd src
+dotnet run -c Release --project .\GraphLib.Console\GraphLib.Console.csproj -- run ` --file "C:\source\repos\RaalnanUno\GraphLib\DocFiles\Rahsaan_Pringle_Cover_Letter_Creative_Merchandising_Lead.docx"
