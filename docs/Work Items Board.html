@@ -265,6 +265,7 @@
         title: "Decide: Supported input file types + conversion strategy",
         summary: "Lock the contract for what GraphLib will accept (docx, xlsx, pptx, html, txt, etc.) and how conversion is handled (Graph PDF endpoint vs fallbacks).",
         tags: ["scope", "conversion", "compliance"],
+        files: ["src/GraphLib.Core/Sql/schema.sql", "src/GraphLib.Core/Models/GraphLibSettings.cs"],
         asA: "As a Product Owner",
         iNeed: "I need a supported file type + conversion decision",
         soThat: "so that the team can implement the pipeline without rework.",
@@ -286,6 +287,7 @@
         title: "Release v0.1 checklist (portable CLI demo)",
         summary: "Define what 'done' means for the first demo release: init DB, run single file, logging, docs, troubleshooting, and repeatability.",
         tags: ["release", "demo", "checklist"],
+        files: ["src/GraphLib.Console/Program.cs", "src/GraphLib.Core/Data/DbInitializer.cs"],
         asA: "As a Release Manager",
         iNeed: "a v0.1 release checklist",
         soThat: "so that we can demo consistently and avoid 'it works on my machine'.",
@@ -307,6 +309,7 @@
         title: "CLI: Add --fileTypes allowlist override (args → settings)",
         summary: "Allow operators to pass a temporary allowlist of extensions at runtime without editing SQLite.",
         tags: ["cli", "args", "settings"],
+        files: ["src/GraphLib.Console/Cli/Args.cs", "src/GraphLib.Console/Cli/ArgsParser.cs", "src/GraphLib.Console/Program.cs"],
         asA: "As an Operator",
         iNeed: "to override allowed file extensions via CLI",
         soThat: "so I can test new extensions without editing the DB.",
@@ -327,6 +330,7 @@
         title: "CLI: Add --logFailuresOnly behavior",
         summary: "Reduce noise during batch demos by writing only failed events to console while still logging full detail to SQLite.",
         tags: ["cli", "logging", "demo"],
+        files: ["src/GraphLib.Console/Cli/Args.cs", "src/GraphLib.Console/Cli/ArgsParser.cs"],
         asA: "As an Operator",
         iNeed: "a failures-only console mode",
         soThat: "so I can run batch tests without drowning in logs.",
@@ -345,6 +349,7 @@
         title: "Bug: Confusing DB path resolution in troubleshooting scenarios",
         summary: "Users update one DB but run against another due to relative path resolution. Make it obvious at runtime.",
         tags: ["sqlite", "db", "usability"],
+        files: ["src/GraphLib.Console/Program.cs", "src/GraphLib.Core/Data/SqlitePaths.cs"],
         asA: "As a Developer",
         iNeed: "the app to print the resolved DB path at startup",
         soThat: "so troubleshooting is deterministic.",
@@ -367,6 +372,7 @@
         title: "Pipeline: Ensure cleanup runs even after Graph failures",
         summary: "Harden cleanup semantics so temp artifacts are removed even if resolve/upload/convert fails mid-run.",
         tags: ["pipeline", "cleanup", "resilience"],
+        files: ["src/GraphLib.Core/Pipeline/SingleFilePipeline.cs", "src/GraphLib.Core/Graph/GraphCleanupService.cs"],
         asA: "As an Operator",
         iNeed: "cleanup to run reliably on failure",
         soThat: "so repeat runs don't accumulate junk or cause conflicts.",
@@ -385,6 +391,7 @@
         title: "Pipeline: Add stage timing breakdown (per step)",
         summary: "In addition to overall elapsed time, capture elapsed milliseconds for each stage (resolve site, drive, upload, convert, store PDF, cleanup).",
         tags: ["observability", "metrics", "performance"],
+        files: ["src/GraphLib.Core/Pipeline/SingleFilePipeline.cs", "src/GraphLib.Core/Data/Repositories/EventLogRepository.cs", "src/GraphLib.Core/Models/GraphLibRunResult.cs"],
         asA: "As a Maintainer",
         iNeed: "per-stage timing metrics",
         soThat: "so I can identify bottlenecks and regression.",
@@ -403,6 +410,7 @@
         title: "Bug: Conflict behavior 'rename' not reflected consistently across upload + pdf store",
         summary: "If conflictBehavior is rename, ensure both the upload and PDF storage follow the same name policy.",
         tags: ["conflict", "sharepoint", "consistency"],
+        files: ["src/GraphLib.Core/Models/ConflictBehavior.cs", "src/GraphLib.Core/Graph/GraphUploadService.cs", "src/GraphLib.Core/Graph/GraphPdfConversionService.cs"],
         asA: "As an Operator",
         iNeed: "consistent conflict behavior",
         soThat: "so I can predict what ends up in SharePoint.",
@@ -423,6 +431,7 @@
         title: "Graph: Add 'drive folder ensure' service (create if missing)",
         summary: "Extract folder resolution/creation into a dedicated Graph*Service to keep pipeline thin and consistent.",
         tags: ["graph", "services", "refactor"],
+        files: ["src/GraphLib.Core/Graph/GraphFolderService.cs", "src/GraphLib.Core/Pipeline/SingleFilePipeline.cs"],
         asA: "As a Developer",
         iNeed: "a dedicated folder ensure service",
         soThat: "so pipeline orchestration stays readable and testable.",
@@ -441,6 +450,7 @@
         title: "Graph: Add HTML download support (convert + download output)",
         summary: "Support downloading HTML inputs (or saving HTML to SharePoint) and still performing PDF conversion where possible.",
         tags: ["html", "download", "conversion"],
+        files: ["src/GraphLib.Core/Graph/GraphUploadService.cs", "src/GraphLib.Core/Graph/GraphPdfConversionService.cs", "src/GraphLib.Core/Sql/schema.sql"],
         asA: "As an Operator",
         iNeed: "GraphLib to accept HTML files",
         soThat: "so I can run conversions on exported reports and web content.",
@@ -459,6 +469,7 @@
         title: "Bug: 401 on resolveSite should surface 'admin consent' hint in error message",
         summary: "When Graph returns 401, include a targeted hint referencing Application permissions and admin consent.",
         tags: ["auth", "msgraph", "supportability"],
+        files: ["src/GraphLib.Core/Graph/GraphSiteResolver.cs", "src/GraphLib.Core/Graph/GraphAuth.cs", "src/GraphLib.Core/Data/Repositories/EventLogRepository.cs"],
         asA: "As a Maintainer",
         iNeed: "better 401 diagnostics",
         soThat: "so setup issues are solved quickly.",
@@ -479,6 +490,7 @@
         title: "DB: Add FileExtensions table + seed defaults",
         summary: "Persist allowed file extensions in SQLite (with enabled flag) and seed common defaults.",
         tags: ["sqlite", "schema", "extensions"],
+        files: ["src/GraphLib.Core/Sql/schema.sql", "src/GraphLib.Core/Data/DbInitializer.cs"],
         asA: "As an Administrator",
         iNeed: "to configure allowed file types via DB",
         soThat: "so policy changes don't require code changes.",
@@ -497,6 +509,7 @@
         title: "DB: Store resolved SharePoint IDs per run (siteId, driveId, folderId)",
         summary: "Make runs auditable by recording the resolved IDs used for Graph operations.",
         tags: ["audit", "ids", "observability"],
+        files: ["src/GraphLib.Core/Sql/schema.sql", "src/GraphLib.Core/Data/Repositories/RunRepository.cs", "src/GraphLib.Core/Pipeline/SingleFilePipeline.cs"],
         asA: "As a Security Reviewer",
         iNeed: "resolved resource IDs captured",
         soThat: "so we can audit exactly where content was written.",
@@ -515,6 +528,7 @@
         title: "Bug: SQLite boolean handling inconsistent across repositories",
         summary: "Some reads use int conversion patterns; ensure all bool fields use GetInt32(i) != 0 consistently.",
         tags: ["sqlite", "bugs", "consistency"],
+        files: ["src/GraphLib.Core/Data/Repositories/RunRepository.cs", "src/GraphLib.Core/Data/Repositories/FileEventRepository.cs", "src/GraphLib.Core/Data/Repositories/EventLogRepository.cs"],
         asA: "As a Developer",
         iNeed: "consistent bool conversions",
         soThat: "so flags behave correctly across environments.",
@@ -535,6 +549,7 @@
         title: "Docs: Break reusable navigation into docs/nav.html",
         summary: "Extract the navbar into a single HTML file and load it on each docs page (fallback if missing).",
         tags: ["docs", "nav", "reuse"],
+        files: [],
         asA: "As a Maintainer",
         iNeed: "one reusable docs nav",
         soThat: "so changes propagate across pages without copy/paste.",
@@ -553,6 +568,7 @@
         title: "Docs: Add 'Operations Guide' page (runbook)",
         summary: "Write an ops-focused guide: required permissions, DB settings, typical run commands, troubleshooting flow.",
         tags: ["runbook", "ops", "support"],
+        files: [],
         asA: "As an Operator",
         iNeed: "a runbook-style guide",
         soThat: "so I can run GraphLib without reading the source.",
@@ -571,6 +587,7 @@
         title: "Docs: Add 'Schema Reference' page for SQLite tables",
         summary: "Document Run/FileEvent/EventLog/AppSettings tables (and any new tables) with sample queries.",
         tags: ["sqlite", "docs", "schema"],
+        files: ["src/GraphLib.Core/Sql/schema.sql"],
         asA: "As a Developer",
         iNeed: "a schema reference",
         soThat: "so I can query runs and diagnose issues quickly.",
@@ -591,6 +608,7 @@
         title: "Template: Weekly Ship Report (GraphLib)",
         summary: "Create a consistent weekly report issue template: shipped, in progress, risks, decisions needed, next week plan.",
         tags: ["process", "reporting", "stakeholders"],
+        files: [],
         asA: "As a Lead",
         iNeed: "a weekly ship report template",
         soThat: "so stakeholders get consistent visibility.",
@@ -609,6 +627,7 @@
         title: "Template: Bug Report (GraphLib standard)",
         summary: "Standardize bug reports: environment, repro steps, expected vs actual, logs, DB query to attach run/event details.",
         tags: ["process", "bugs", "supportability"],
+        files: [],
         asA: "As a Team",
         iNeed: "a bug report template",
         soThat: "so issues include the info we actually need.",
@@ -627,6 +646,7 @@
         title: "Template: User Story (GraphLib standard)",
         summary: "Standard story format: As a / I need / so that; acceptance criteria; telemetry; docs impact; test notes.",
         tags: ["process", "stories", "standards"],
+        files: [],
         asA: "As a Team",
         iNeed: "a consistent story template",
         soThat: "so stories are implementable and testable.",
@@ -688,6 +708,9 @@
       const ac = (i.acceptance || []).map(x => `- [ ] ${x}`).join("\n");
       const notes = (i.notes || []).map(x => `- ${x}`).join("\n");
       const tags = (i.tags || []).map(t => `\`${t}\``).join(" ");
+      const files = (i.files || []).length > 0
+        ? `\n\n### Relevant Files\n${(i.files || []).map(f => `- \`${f}\``).join("\n")}`
+        : "";
 
       return `## ${i.id} — ${i.title}
 
@@ -721,6 +744,7 @@ ${notes || "- (add notes)"}
 ### Test Notes
 - [ ] Happy path validated
 - [ ] One failure path validated (e.g., auth/permissions, missing library, invalid extension)
+${files}
 `;
     }
 
@@ -769,6 +793,13 @@ ${notes || "- (add notes)"}
                 ${(i.tags || []).map(t => `<span class="badge badge-soft chip">#${esc(t)}</span>`).join("")}
               </div>
 
+              ${(i.files || []).length > 0 ? `
+              <h3 class="h6">Relevant Files</h3>
+              <div class="small mb-3">
+                ${(i.files || []).map(f => `<div class="mb-1"><span class="badge badge-light"><i class="bi bi-file-code me-1"></i>${esc(f)}</span></div>`).join("")}
+              </div>
+              ` : ""}
+
               <h3 class="h6">Issue Body (copy/paste into Git)</h3>
               <div class="code-wrap">
                 <pre class="bg-light border rounded p-3 mb-0"><code id="${hiddenId}_md">${md}</code></pre>
@@ -815,9 +846,12 @@ ${notes || "- (add notes)"}
                 <span>
                   <i class="bi bi-arrows-fullscreen me-1"></i>Open details
                 </span>
-                <span>
-                  ${(i.tags || []).slice(0, 3).map(t => `#${esc(t)}`).join(" ")}
-                </span>
+                <div>
+                  ${(i.files || []).length > 0 ? `<span class="me-2"><i class="bi bi-file-code me-1"></i>${i.files.length}</span>` : ""}
+                  <span>
+                    ${(i.tags || []).slice(0, 3).map(t => `#${esc(t)}`).join(" ")}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
