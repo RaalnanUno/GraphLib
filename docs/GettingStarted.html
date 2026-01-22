@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>GraphLib — Getting Started</title>
+
+  <!-- Bootstrap 5 (CSS) -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+    crossorigin="anonymous"
+  />
+
+  <!-- Bootstrap Icons (optional) -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    rel="stylesheet"
+  />
+
+  <style>
+    :root { color-scheme: light; }
+    body { background: #f8f9fa; }
+    .brand { letter-spacing: .2px; }
+    .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    pre code { white-space: pre; }
+    .code-wrap { position: relative; }
+    .copy-btn {
+      position: absolute;
+      top: .5rem;
+      right: .5rem;
+      z-index: 2;
+    }
+    .small-muted { color: #6c757d; font-size: .9rem; }
+    .anchor-link { text-decoration: none; }
+    .anchor-link:hover { text-decoration: underline; }
+    .card { border: 0; box-shadow: 0 6px 18px rgba(0,0,0,.06); }
+    .toc a { text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+    .badge-soft {
+      background: rgba(13,110,253,.08);
+      color: #0d6efd;
+      border: 1px solid rgba(13,110,253,.18);
+      font-weight: 600;
+    }
+    .callout {
+      border-left: 4px solid #0d6efd;
+      background: #fff;
+      padding: 1rem 1rem;
+      border-radius: .5rem;
+    }
+    .callout-warning { border-left-color: #ffc107; }
+    .callout-danger { border-left-color: #dc3545; }
+    .callout-success { border-left-color: #198754; }
+
+    /* Print: hide buttons/nav chrome */
+    @media print {
+      .no-print { display: none !important; }
+      body { background: #fff; }
+      .card { box-shadow: none; border: 1px solid #e9ecef; }
+    }
+  </style>
+</head>
+
+<body id="top">
+  <nav class="navbar navbar-expand-lg bg-white border-bottom sticky-top no-print">
+    <div class="container">
+      <span class="navbar-brand brand fw-semibold">
+        <i class="bi bi-rocket-takeoff me-2 text-primary"></i>
+        GraphLib Getting Started
+      </span>
+      <div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary btn-sm" id="btnExpandAll" type="button">
+          <i class="bi bi-arrows-angle-expand me-1"></i>Expand all
+        </button>
+        <button class="btn btn-outline-secondary btn-sm" id="btnCollapseAll" type="button">
+          <i class="bi bi-arrows-angle-contract me-1"></i>Collapse all
+        </button>
+        <button class="btn btn-primary btn-sm" id="btnPrint" type="button">
+          <i class="bi bi-printer me-1"></i>Print
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <header class="py-4">
+    <div class="container">
+      <div class="row g-3 align-items-stretch">
+        <div class="col-12 col-lg-8">
+          <div class="card h-100">
+            <div class="card-body">
+              <h1 class="h3 mb-2">Initialization & Basic Run</h1>
+              <p class="mb-0 text-secondary">
+                This page is the “happy path” for running <span class="kbd">GraphLib</span>:
+                initialize the SQLite DB, configure app settings, and run a file through the pipeline.
+                Use <span class="badge badge-soft">Troubleshooting</span> for errors like 401 / MSAL / drive resolution.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+          <div class="card h-100">
+            <div class="card-body">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <i class="bi bi-check2-circle text-success fs-5"></i>
+                <h2 class="h6 mb-0">Quick Start Checklist</h2>
+              </div>
+              <ul class="mb-0 small">
+                <li>Restore/build solution</li>
+                <li>Run <span class="kbd">init</span> once to create SQLite schema</li>
+                <li>Set <span class="kbd">AppSettings</span> values (SiteUrl / LibraryName / TenantId / ClientId / Secret)</li>
+                <li>Run <span class="kbd">run</span> with a test file</li>
+                <li>If something fails: open <span class="kbd">Troubleshooting.html</span></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3 mt-1">
+        <div class="col-12">
+          <div class="callout callout-success">
+            <div class="d-flex align-items-start gap-2">
+              <i class="bi bi-lightbulb-fill text-success mt-1"></i>
+              <div>
+                <div class="fw-semibold">Recommended workflow</div>
+                <div class="small-muted">
+                  Build → init DB → update <span class="kbd">AppSettings</span> → (optional) PowerShell site test → run GraphLib.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <main class="pb-5">
+    <div class="container">
+      <div class="row g-3">
+        <!-- TOC -->
+        <div class="col-12 col-lg-4">
+          <div class="card">
+            <div class="card-body toc">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <i class="bi bi-list-task text-primary"></i>
+                <h2 class="h6 mb-0">Contents</h2>
+              </div>
+              <ol class="mb-0 small">
+                <li><a href="#prereq">Prereqs</a></li>
+                <li><a href="#build">Build</a></li>
+                <li><a href="#init">Initialize DB</a></li>
+                <li><a href="#settings">Update AppSettings (SQLite)</a></li>
+                <li><a href="#run">Run (basic sample)</a></li>
+                <li><a href="#runexplicit">Run with explicit DB path</a></li>
+                <li><a href="#scripts">Optional: run scripts (bat/sql)</a></li>
+              </ol>
+              <hr />
+              <div class="small-muted">
+                Tip: every command block has a copy button.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main accordion -->
+        <div class="col-12 col-lg-8">
+          <div class="accordion" id="accordionGettingStarted">
+
+            <!-- 1) Prereqs -->
+            <div class="accordion-item" id="prereq">
+              <h2 class="accordion-header">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#cprereq" aria-expanded="true">
+                  <i class="bi bi-tools me-2 text-secondary"></i>
+                  Prereqs
+                </button>
+              </h2>
+              <div id="cprereq" class="accordion-collapse collapse show" data-bs-parent="#accordionGettingStarted">
+                <div class="accordion-body">
+                  <ul class="small mb-3">
+                    <li><b>.NET SDK</b> installed (project targets .NET 8)</li>
+                    <li>A working clone of the repo</li>
+                    <li>SharePoint/M365 tenant + App Registration (app-only) configured</li>
+                  </ul>
+
+                  <div class="callout callout-warning">
+                    <div class="fw-semibold">Important</div>
+                    <div class="small-muted">
+                      App-only uploads require Graph <b>Application permissions</b> and <b>Admin consent granted</b>.
+                      If you hit a 401 at <span class="kbd">resolveSite</span>, open <span class="kbd">Troubleshooting.html</span>.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2) Build -->
+            <div class="accordion-item" id="build">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#cbuild">
+                  <i class="bi bi-hammer me-2 text-primary"></i>
+                  Build
+                </button>
+              </h2>
+              <div id="cbuild" class="accordion-collapse collapse" data-bs-parent="#accordionGettingStarted">
+                <div class="accordion-body">
+                  <p class="small mb-2">
+                    Run from repo root (or adjust paths accordingly).
+                  </p>
+
+                  <div class="code-wrap">
+                    <button class="btn btn-sm btn-outline-primary copy-btn no-print" data-copy="#cmdBuild">
+                      <i class="bi bi-clipboard me-1"></i>Copy
+                    </button>
+<pre class="bg-light border rounded p-3 mb-0"><code id="cmdBuild">cd src
+dotnet restore
+dotnet build -c Release</code></pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3) Init -->
+            <div class="accordion-item" id="init">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#cinit">
+                  <i class="bi bi-database-add me-2 text-success"></i>
+                  Initialize DB (first run)
+                </button>
+              </h2>
+              <div id="cinit" class="accordion-collapse collapse" data-bs-parent="#accordionGettingStarted">
+                <div class="accordion-body">
+                  <p class="small mb-2">
+                    The <span class="kbd">init</span> command creates the SQLite DB and schema (or ensures it exists).
+                  </p>
+
+                  <div class="code-wrap">
+                    <button class="btn btn-sm btn-outline-primary copy-btn no-print" data-copy="#cmdInitDefault">
+                      <i class="bi bi-clipboard me-1"></i>Copy
+                    </button>
+<pre class="bg-light border rounded p-3 mb-0"><code id="cmdInitDefault">cd src
+dotnet run -c Release --project .\GraphLib.Console\GraphLib.Console.csproj -- init</code></pre>
+                  </div>
+
+                  <div class="small-muted mt-2">
+                    Tip: if you want a specific DB file, add <span class="kbd">--db</span> (see “Run with explicit DB path” below).
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4) Settings -->
+            <div class="accordion-item" id="settings">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#csettings">
+                  <i class="bi bi-sliders2 me-2 text-info"></i>
+                  Update AppSettings (SQLite)
+                </button>
+              </h2>
+              <div id="csettings" class="accordion-collapse collapse" data-bs-parent="#accordionGettingStarted">
+                <div class="accordion-body">
+                  <p class="small mb-2">
+                    Update row <span class="kbd">Id = 1</span> in <span class="kbd">AppSettings</span>.
+                    <span class="kbd">ClientSecret</span> must be the secret <b>Value</b> (not secret id).
+                  </p>
+
+                  <div class="code-wrap">
+                    <button class="btn btn-sm btn-outline-primary copy-btn no-print" data-copy="#sqlSettings">
+                      <i class="bi bi-clipboard me-1"></i>Copy
+                    </button>
+<pre class="bg-light border rounded p-3 mb-0"><code id="sqlSettings">UPDATE AppSettings SET
+  SiteUrl      = 'https://tenant.sharepoint.com/sites/SiteName',
+  LibraryName  = 'Shared Documents',
+  TenantId     = '&lt;TENANT_ID&gt;',
+  ClientId     = '&lt;CLIENT_ID&gt;',
+  ClientSecret = '&lt;CLIENT_SECRET_VALUE&gt;'
+WHERE Id = 1;</code></pre>
+                  </div>
+
+                  <div class="callout mt-3">
+                    <div class="fw-semibold">SiteUrl rule</div>
+                    <div class="small-muted">
+                      <span class="kbd">SiteUrl</span> must be the site root (not a library/folder URL).
+                      Example: <span class="kbd">https://tenant.sharepoint.com/sites/SiteName</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 5) Run basic -->
+            <div class="accordion-item" id="run">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#crun">
+                  <i class="bi bi-play-circle me-2 text-success"></i>
+                  Run (basic sample)
+                </button>
+              </h2>
+              <div id="crun" class="accordion-collapse collapse" data-bs-parent="#accordionGettingStarted">
+                <div class="accordion-body">
+                  <p class="small mb-2">
+                    This is your “basic run sample” as provided.
+                  </p>
+
+                  <div class="code-wrap">
+                    <button class="btn btn-sm btn-outline-primary copy-btn no-print" data-copy="#cmdRunBasic">
+                      <i class="bi bi-clipboard me-1"></i>Copy
+                    </button>
+<pre class="bg-light border rounded p-3 mb-0"><code id="cmdRunBasic">cd src
+dotnet run -c Release --project .\GraphLib.Console\GraphLib.Console.csproj -- run `
+  --file "C:\source\repos\RaalnanUno\GraphLib\DocFiles\Rahsaan_Pringle_Cover_Letter_Creative_Merchandising_Lead.docx"</code></pre>
+                  </div>
+
+                  <div class="small-muted mt-2">
+                    If you see 401 at <span class="kbd">resolveSite</span>, it’s almost always <b>admin consent</b> or permissions.
+                    Open <span class="kbd">Troubleshooting.html</span>.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 6) Run explicit db -->
+            <div class="accordion-item" id="runexplicit">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#crunexplicit">
+                  <i class="bi bi-signpost-split me-2 text-primary"></i>
+                  Run with explicit DB path (recommended during setup)
+                </button>
+              </h2>
+              <div id="crunexplicit" class="accordion-collapse collapse" data-bs-parent="#accordionGettingStarted">
+                <div class="accordion-body">
+                  <p class="small mb-2">
+                    This removes confusion about which SQLite DB file you’re editing vs running.
+                  </p>
+
+                  <div class="code-wrap">
+                    <button class="btn btn-sm btn-outline-primary copy-btn no-print" data-copy="#cmdRunExplicitDb">
+                      <i class="bi bi-clipboard me-1"></i>Copy
+                    </button>
+<pre class="bg-light border rounded p-3 mb-0"><code id="cmdRunExplicitDb">cd src
+dotnet run -c Release --project .\GraphLib.Console\GraphLib.Console.csproj -- run `
+  --db ".\GraphLib.Console\bin\Release\net8.0\Data\GraphLib.db" `
+  --file "C:\path\input.docx"</code></pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 7) Optional scripts -->
+            <div class="accordion-item" id="scripts">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#cscripts">
+                  <i class="bi bi-terminal me-2 text-secondary"></i>
+                  Optional: run scripts (bat/sql)
+                </button>
+              </h2>
+              <div id="cscripts" class="accordion-collapse collapse" data-bs-parent="#accordionGettingStarted">
+                <div class="accordion-body">
+                  <p class="small mb-2">
+                    If your repo includes a batch SQL runner (like the one referenced in Troubleshooting),
+                    these are typical patterns.
+                  </p>
+
+                  <h3 class="h6">Apply an update script</h3>
+                  <div class="code-wrap">
+                    <button class="btn btn-sm btn-outline-primary copy-btn no-print" data-copy="#cmdRunSqlScript">
+                      <i class="bi bi-clipboard me-1"></i>Copy
+                    </button>
+<pre class="bg-light border rounded p-3 mb-0"><code id="cmdRunSqlScript">.\RunBat\run-sql.bat ".\RunBat\update-settings.sql"</code></pre>
+                  </div>
+
+                  <h3 class="h6 mt-3">Quick verify (select)</h3>
+                  <div class="code-wrap">
+                    <button class="btn btn-sm btn-outline-primary copy-btn no-print" data-copy="#cmdRunSqlSelect">
+                      <i class="bi bi-clipboard me-1"></i>Copy
+                    </button>
+<pre class="bg-light border rounded p-3 mb-0"><code id="cmdRunSqlSelect">.\RunBat\run-sql.bat "SELECT SiteUrl, LibraryName, TenantId, ClientId FROM AppSettings WHERE Id=1;"</code></pre>
+                  </div>
+
+                  <div class="callout callout-warning mt-3">
+                    <div class="fw-semibold">If your repo doesn’t have RunBat yet</div>
+                    <div class="small-muted">
+                      Keep this section anyway as a placeholder, or delete it.
+                      It’s a good “team-friendly” workflow because it’s repeatable and produces a clean success/failure signal.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div><!-- /accordion -->
+        </div><!-- /col -->
+      </div><!-- /row -->
+    </div><!-- /container -->
+  </main>
+
+  <footer class="py-4 border-top bg-white">
+    <div class="container">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div class="small text-secondary">
+          GraphLib Getting Started • Generated for your repo docs
+        </div>
+        <div class="small">
+          <a class="anchor-link" href="#top" onclick="window.scrollTo({top:0,behavior:'smooth'}); return false;">
+            Back to top <i class="bi bi-arrow-up"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Bootstrap 5 (JS Bundle includes Popper) -->
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+    crossorigin="anonymous"
+  ></script>
+
+  <script>
+    // Copy-to-clipboard for code blocks
+    document.querySelectorAll("[data-copy]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const sel = btn.getAttribute("data-copy");
+        const el = document.querySelector(sel);
+        if (!el) return;
+
+        const text = el.innerText;
+        try {
+          await navigator.clipboard.writeText(text);
+          const original = btn.innerHTML;
+          btn.innerHTML = '<i class="bi bi-check2 me-1"></i>Copied';
+          btn.classList.remove("btn-outline-primary");
+          btn.classList.add("btn-success");
+          setTimeout(() => {
+            btn.innerHTML = original;
+            btn.classList.add("btn-outline-primary");
+            btn.classList.remove("btn-success");
+          }, 1200);
+        } catch (e) {
+          alert("Copy failed. Your browser may block clipboard access.");
+        }
+      });
+    });
+
+    // Expand/Collapse all accordions
+    const accordionEl = document.getElementById("accordionGettingStarted");
+    const items = accordionEl ? accordionEl.querySelectorAll(".accordion-collapse") : [];
+
+    document.getElementById("btnExpandAll")?.addEventListener("click", () => {
+      items.forEach(el => new bootstrap.Collapse(el, { show: true }));
+    });
+
+    document.getElementById("btnCollapseAll")?.addEventListener("click", () => {
+      items.forEach(el => new bootstrap.Collapse(el, { hide: true }));
+    });
+
+    // Print
+    document.getElementById("btnPrint")?.addEventListener("click", () => window.print());
+  </script>
+</body>
+</html>
