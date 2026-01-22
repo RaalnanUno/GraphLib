@@ -1,0 +1,1021 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>GraphLib — Work Items</title>
+
+  <!-- Bootstrap 5 (CSS) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous" />
+
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+
+  <!-- GLightbox (for card expansion) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/glightbox/dist/css/glightbox.min.css" />
+
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Small local helpers (keeps compatibility with your style.css) */
+    .chip { font-size: .75rem; }
+    .filterbar .btn { white-space: nowrap; }
+    .issue-card { cursor: pointer; transition: transform .06s ease-in-out; }
+    .issue-card:hover { transform: translateY(-1px); }
+    .issue-meta { gap: .5rem; }
+    .issue-grid { min-height: 120px; }
+    .issue-item { width: 100%; }
+    @media (min-width: 768px) { .issue-item { width: 50%; } }
+    @media (min-width: 1200px) { .issue-item { width: 33.3333%; } }
+
+    /* Lightbox content container */
+    .lb-wrap { max-width: 980px; }
+    .lb-head { position: sticky; top: 0; background: #fff; border-bottom: 1px solid rgba(0,0,0,.08); z-index: 1; }
+    .lb-body pre { white-space: pre-wrap; word-break: break-word; }
+    .lb-body .kbd { padding: .15rem .35rem; border-radius: .25rem; border: 1px solid rgba(0,0,0,.12); background: rgba(0,0,0,.03); }
+
+    /* Print view */
+    @media print {
+      .no-print { display: none !important; }
+      .issue-item { width: 100% !important; }
+      .issue-card { break-inside: avoid; }
+    }
+  </style>
+</head>
+
+<body id="top">
+  <!-- NAV: tries to load docs/nav.html; falls back to inline nav if missing -->
+  <div id="navMount">
+    <nav class="navbar navbar-expand-lg bg-white border-bottom sticky-top">
+      <div class="container">
+        <span class="navbar-brand brand fw-semibold">
+          <i class="bi bi-kanban me-2 text-primary"></i>
+          GraphLib Work Items
+        </span>
+
+        <div class="d-flex gap-2 no-print">
+          <a class="btn btn-outline-secondary btn-sm" href="GettingStarted.html" title="Getting Started">
+            <i class="bi bi-rocket-takeoff me-1"></i>Getting Started
+          </a>
+          <a class="btn btn-outline-secondary btn-sm" href="Troubleshooting.html" title="Troubleshooting">
+            <i class="bi bi-life-preserver me-1"></i>Troubleshooting
+          </a>
+          <button class="btn btn-primary btn-sm" id="btnPrint" type="button" title="Print / Save as PDF">
+            <i class="bi bi-printer me-1"></i>Print to PDF
+          </button>
+        </div>
+      </div>
+    </nav>
+  </div>
+
+  <header class="py-4">
+    <div class="container">
+      <div class="row g-3 align-items-stretch">
+        <div class="col-12 col-lg-8">
+          <div class="card h-100">
+            <div class="card-body">
+              <h1 class="h3 mb-2">Board Starter Pack</h1>
+              <p class="mb-0 text-secondary">
+                A ready-to-post set of work items for <span class="kbd">GraphLib</span> (Core + Console),
+                written in “company board” format. Click any card to open the full issue body in a lightbox.
+              </p>
+              <div class="mt-3 d-flex flex-wrap gap-2 small">
+                <span class="badge badge-soft"><i class="bi bi-diagram-3 me-1"></i>Epics by Project</span>
+                <span class="badge badge-soft"><i class="bi bi-funnel me-1"></i>Isotope filter + sort</span>
+                <span class="badge badge-soft"><i class="bi bi-arrows-fullscreen me-1"></i>GLightbox expansion</span>
+                <span class="badge badge-soft"><i class="bi bi-printer me-1"></i>Print to PDF</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+          <div class="card h-100">
+            <div class="card-body">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <i class="bi bi-check2-circle text-success fs-5"></i>
+                <h2 class="h6 mb-0">How to Use</h2>
+              </div>
+              <ol class="mb-0 small">
+                <li>Filter to a project + type.</li>
+                <li>Open a card → copy the issue body.</li>
+                <li>Create issues in Git (labels = Type, project = component).</li>
+                <li>Print this page to PDF for kickoff decks.</li>
+              </ol>
+              <hr />
+              <div class="small-muted">
+                Optional: create <span class="kbd">docs/nav.html</span> and this page will auto-load it for shared nav.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FILTER BAR -->
+      <div class="row g-3 mt-1 no-print">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-body filterbar">
+              <div class="row g-2 align-items-center">
+                <div class="col-12 col-lg-4">
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input id="txtSearch" type="text" class="form-control" placeholder="Search title / summary / tags…" />
+                    <button class="btn btn-outline-secondary" id="btnClearSearch" type="button" title="Clear">
+                      <i class="bi bi-x-lg"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="col-12 col-lg-8">
+                  <div class="d-flex flex-wrap gap-2 justify-content-lg-end">
+                    <div class="btn-group" role="group" aria-label="Project filter">
+                      <button class="btn btn-outline-primary btn-sm is-checked" data-filter-project="*">
+                        All Projects
+                      </button>
+                      <button class="btn btn-outline-primary btn-sm" data-filter-project=".p-graphlib">GraphLib</button>
+                      <button class="btn btn-outline-primary btn-sm" data-filter-project=".p-core">GraphLib.Core</button>
+                      <button class="btn btn-outline-primary btn-sm" data-filter-project=".p-console">GraphLib.Console</button>
+                    </div>
+
+                    <div class="btn-group" role="group" aria-label="Type filter">
+                      <button class="btn btn-outline-secondary btn-sm is-checked" data-filter-type="*">
+                        All Types
+                      </button>
+                      <button class="btn btn-outline-secondary btn-sm" data-filter-type=".t-userstory">User Story</button>
+                      <button class="btn btn-outline-secondary btn-sm" data-filter-type=".t-feature">Feature</button>
+                      <button class="btn btn-outline-secondary btn-sm" data-filter-type=".t-bug">Bug</button>
+                      <button class="btn btn-outline-secondary btn-sm" data-filter-type=".t-doc">Docs</button>
+                      <button class="btn btn-outline-secondary btn-sm" data-filter-type=".t-web">Web</button>
+                      <button class="btn btn-outline-secondary btn-sm" data-filter-type=".t-decision">Decision</button>
+                      <button class="btn btn-outline-secondary btn-sm" data-filter-type=".t-release">Release</button>
+                      <button class="btn btn-outline-secondary btn-sm" data-filter-type=".t-ship">Ship Report</button>
+                    </div>
+
+                    <div class="btn-group" role="group" aria-label="Sort">
+                      <button class="btn btn-outline-dark btn-sm is-checked" data-sort="priority">
+                        <i class="bi bi-sort-down-alt me-1"></i>Priority
+                      </button>
+                      <button class="btn btn-outline-dark btn-sm" data-sort="project">
+                        <i class="bi bi-diagram-3 me-1"></i>Project
+                      </button>
+                      <button class="btn btn-outline-dark btn-sm" data-sort="type">
+                        <i class="bi bi-tags me-1"></i>Type
+                      </button>
+                    </div>
+
+                    <button class="btn btn-outline-success btn-sm" id="btnReset" type="button">
+                      <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="small-muted mt-2">
+                Tip: Click a card to open a full issue template you can paste into Git issues.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <main class="pb-5">
+    <div class="container">
+      <div class="row g-3">
+        <div class="col-12">
+          <div class="issue-grid row g-3" id="issueGrid">
+            <!-- Cards injected by JS -->
+          </div>
+
+          <div class="mt-3 small text-secondary">
+            Showing <span id="countVisible">0</span> / <span id="countTotal">0</span> items
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="py-4 border-top bg-white">
+    <div class="container">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div class="small text-secondary">
+          GraphLib Work Items • Generated for your repo docs
+        </div>
+        <div class="small">
+          <a class="anchor-link" href="#top" onclick="window.scrollTo({top:0,behavior:'smooth'}); return false;">
+            Back to top <i class="bi bi-arrow-up"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Bootstrap 5 (JS Bundle includes Popper) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+    crossorigin="anonymous"></script>
+
+  <!-- Isotope -->
+  <script src="https://cdn.jsdelivr.net/npm/isotope-layout@3/dist/isotope.pkgd.min.js"></script>
+
+  <!-- GLightbox -->
+  <script src="https://cdn.jsdelivr.net/npm/glightbox/dist/js/glightbox.min.js"></script>
+
+  <!-- Optional: your repo app.js (safe to keep; this page does not depend on it) -->
+  <script src="app.js"></script>
+
+  <script>
+    // --------------------------------------------
+    // Optional reusable NAV: load docs/nav.html if present
+    // --------------------------------------------
+    (async function tryLoadNav() {
+      const mount = document.getElementById('navMount');
+      if (!mount) return;
+
+      // If querystring forces inline nav: ?nav=inline
+      const qs = new URLSearchParams(location.search);
+      if (qs.get('nav') === 'inline') return;
+
+      try {
+        const resp = await fetch('nav.html', { cache: 'no-cache' });
+        if (!resp.ok) return;
+        const html = await resp.text();
+        if (html && html.trim().length > 20) {
+          mount.innerHTML = html;
+        }
+      } catch { /* ignore */ }
+    })();
+
+    // --------------------------------------------
+    // Data: work items
+    // Types (board): Feature Request, Bug Report, User Story Template, Web Changes/Updates,
+    // Documentation, Weekly Ship Report, Decision Template, Release Work Item, Blank issues
+    // --------------------------------------------
+    const issues = [
+      // ---- EPIC-ish / kickoff items ----
+      {
+        id: "GL-001",
+        project: "GraphLib",
+        type: "Decision Template",
+        priority: 1,
+        title: "Decide: Supported input file types + conversion strategy",
+        summary: "Lock the contract for what GraphLib will accept (docx, xlsx, pptx, html, txt, etc.) and how conversion is handled (Graph PDF endpoint vs fallbacks).",
+        tags: ["scope", "conversion", "compliance"],
+        asA: "As a Product Owner",
+        iNeed: "I need a supported file type + conversion decision",
+        soThat: "so that the team can implement the pipeline without rework.",
+        acceptance: [
+          "Decision recorded in docs (inputs, outputs, constraints, non-goals).",
+          "List of allowed extensions stored in DB (or config) with rationale.",
+          "Fallback policy explicitly stated (none vs future plugin)."
+        ],
+        notes: [
+          "This aligns with your existing DB/repo patterns (schema-driven, portable).",
+          "Keep it simple: start with the most common Office formats + PDF."
+        ]
+      },
+      {
+        id: "GL-002",
+        project: "GraphLib",
+        type: "Release Work Item",
+        priority: 2,
+        title: "Release v0.1 checklist (portable CLI demo)",
+        summary: "Define what 'done' means for the first demo release: init DB, run single file, logging, docs, troubleshooting, and repeatability.",
+        tags: ["release", "demo", "checklist"],
+        asA: "As a Release Manager",
+        iNeed: "a v0.1 release checklist",
+        soThat: "so that we can demo consistently and avoid 'it works on my machine'.",
+        acceptance: [
+          "Checklist includes build command, init command, run command.",
+          "DB path guidance included (explicit --db recommended).",
+          "Docs pages present: GettingStarted, Troubleshooting, WorkItems.",
+          "Known limitations listed (no folder mode? conflict behaviors? etc.)."
+        ],
+        notes: ["Treat this as a living doc; update per iteration."]
+      },
+
+      // ---- Console (CLI) ----
+      {
+        id: "GLC-001",
+        project: "GraphLib.Console",
+        type: "User Story Template",
+        priority: 3,
+        title: "CLI: Add --fileTypes allowlist override (args → settings)",
+        summary: "Allow operators to pass a temporary allowlist of extensions at runtime without editing SQLite.",
+        tags: ["cli", "args", "settings"],
+        asA: "As an Operator",
+        iNeed: "to override allowed file extensions via CLI",
+        soThat: "so I can test new extensions without editing the DB.",
+        acceptance: [
+          "Args.cs includes --fileTypes (comma-separated) and is optional.",
+          "ApplyOverrides merges/overrides DB values for this run only.",
+          "Run logs record which allowlist was used for audit."
+        ],
+        notes: [
+          "Follow existing CLI pattern: Args.cs → ArgsParser.cs → Program.cs ApplyOverrides."
+        ]
+      },
+      {
+        id: "GLC-002",
+        project: "GraphLib.Console",
+        type: "Feature Request",
+        priority: 4,
+        title: "CLI: Add --logFailuresOnly behavior",
+        summary: "Reduce noise during batch demos by writing only failed events to console while still logging full detail to SQLite.",
+        tags: ["cli", "logging", "demo"],
+        asA: "As an Operator",
+        iNeed: "a failures-only console mode",
+        soThat: "so I can run batch tests without drowning in logs.",
+        acceptance: [
+          "ArgsParser supports --logFailuresOnly true|false (default false).",
+          "Console output honors the setting.",
+          "SQLite logging remains unchanged (full fidelity)."
+        ],
+        notes: ["This matches your existing option list from earlier planning."]
+      },
+      {
+        id: "GLC-003",
+        project: "GraphLib.Console",
+        type: "Bug Report",
+        priority: 5,
+        title: "Bug: Confusing DB path resolution in troubleshooting scenarios",
+        summary: "Users update one DB but run against another due to relative path resolution. Make it obvious at runtime.",
+        tags: ["sqlite", "db", "usability"],
+        asA: "As a Developer",
+        iNeed: "the app to print the resolved DB path at startup",
+        soThat: "so troubleshooting is deterministic.",
+        acceptance: [
+          "Resolved DB path is written to console at run start.",
+          "Run table logs include resolved DB path for correlation.",
+          "Docs updated to recommend explicit --db during troubleshooting."
+        ],
+        notes: [
+          "You already mention this in Troubleshooting; this makes it enforced + observable."
+        ]
+      },
+
+      // ---- Core: Pipeline ----
+      {
+        id: "GLK-001",
+        project: "GraphLib.Core",
+        type: "User Story Template",
+        priority: 6,
+        title: "Pipeline: Ensure cleanup runs even after Graph failures",
+        summary: "Harden cleanup semantics so temp artifacts are removed even if resolve/upload/convert fails mid-run.",
+        tags: ["pipeline", "cleanup", "resilience"],
+        asA: "As an Operator",
+        iNeed: "cleanup to run reliably on failure",
+        soThat: "so repeat runs don't accumulate junk or cause conflicts.",
+        acceptance: [
+          "Cleanup executes in finally block in SingleFilePipeline.",
+          "Cleanup logs a completion event with success/failure.",
+          "If cleanup fails, run is still marked failed with a clear error record."
+        ],
+        notes: ["Your guidelines already call this out—turn it into a tracked item."]
+      },
+      {
+        id: "GLK-002",
+        project: "GraphLib.Core",
+        type: "Feature Request",
+        priority: 7,
+        title: "Pipeline: Add stage timing breakdown (per step)",
+        summary: "In addition to overall elapsed time, capture elapsed milliseconds for each stage (resolve site, drive, upload, convert, store PDF, cleanup).",
+        tags: ["observability", "metrics", "performance"],
+        asA: "As a Maintainer",
+        iNeed: "per-stage timing metrics",
+        soThat: "so I can identify bottlenecks and regression.",
+        acceptance: [
+          "EventLog includes timing entries per stage.",
+          "GraphLibRunResult includes a stage timing map/dictionary (or similar).",
+          "Docs updated with example output."
+        ],
+        notes: ["Keep schema changes minimal; could store in EventLog as structured text first."]
+      },
+      {
+        id: "GLK-003",
+        project: "GraphLib.Core",
+        type: "Bug Report",
+        priority: 8,
+        title: "Bug: Conflict behavior 'rename' not reflected consistently across upload + pdf store",
+        summary: "If conflictBehavior is rename, ensure both the upload and PDF storage follow the same name policy.",
+        tags: ["conflict", "sharepoint", "consistency"],
+        asA: "As an Operator",
+        iNeed: "consistent conflict behavior",
+        soThat: "so I can predict what ends up in SharePoint.",
+        acceptance: [
+          "Rename policy is centralized (one helper) and reused.",
+          "Upload and PDF store use the same policy.",
+          "Run logs show the final chosen names."
+        ],
+        notes: ["Validate against your Models/ConflictBehavior enum usage."]
+      },
+
+      // ---- Core: Graph services ----
+      {
+        id: "GLG-001",
+        project: "GraphLib.Core",
+        type: "Feature Request",
+        priority: 9,
+        title: "Graph: Add 'drive folder ensure' service (create if missing)",
+        summary: "Extract folder resolution/creation into a dedicated Graph*Service to keep pipeline thin and consistent.",
+        tags: ["graph", "services", "refactor"],
+        asA: "As a Developer",
+        iNeed: "a dedicated folder ensure service",
+        soThat: "so pipeline orchestration stays readable and testable.",
+        acceptance: [
+          "New sealed Graph service follows GraphClient pattern.",
+          "Pipeline injects and uses the new service.",
+          "Events logged for: folder found vs folder created."
+        ],
+        notes: ["Matches your 'Adding a New Graph Operation' playbook."]
+      },
+      {
+        id: "GLG-002",
+        project: "GraphLib.Core",
+        type: "Feature Request",
+        priority: 10,
+        title: "Graph: Add HTML download support (convert + download output)",
+        summary: "Support downloading HTML inputs (or saving HTML to SharePoint) and still performing PDF conversion where possible.",
+        tags: ["html", "download", "conversion"],
+        asA: "As an Operator",
+        iNeed: "GraphLib to accept HTML files",
+        soThat: "so I can run conversions on exported reports and web content.",
+        acceptance: [
+          "Allowed extension list includes .html/.htm (behind allowlist).",
+          "Upload succeeds and conversion either produces PDF or logs an explicit 'not supported' result.",
+          "Docs updated with examples and limitations."
+        ],
+        notes: ["This directly follows your last ask: 'Let's get this to download html'."]
+      },
+      {
+        id: "GLG-003",
+        project: "GraphLib.Core",
+        type: "Bug Report",
+        priority: 11,
+        title: "Bug: 401 on resolveSite should surface 'admin consent' hint in error message",
+        summary: "When Graph returns 401, include a targeted hint referencing Application permissions and admin consent.",
+        tags: ["auth", "msgraph", "supportability"],
+        asA: "As a Maintainer",
+        iNeed: "better 401 diagnostics",
+        soThat: "so setup issues are solved quickly.",
+        acceptance: [
+          "401 errors include a short hint (admin consent / app-only).",
+          "EventLog records raw status code and endpoint stage.",
+          "Troubleshooting docs linkable section referenced."
+        ],
+        notes: ["You already documented this; now make the software say it."]
+      },
+
+      // ---- Data / SQLite ----
+      {
+        id: "GLD-001",
+        project: "GraphLib.Core",
+        type: "Feature Request",
+        priority: 12,
+        title: "DB: Add FileExtensions table + seed defaults",
+        summary: "Persist allowed file extensions in SQLite (with enabled flag) and seed common defaults.",
+        tags: ["sqlite", "schema", "extensions"],
+        asA: "As an Administrator",
+        iNeed: "to configure allowed file types via DB",
+        soThat: "so policy changes don't require code changes.",
+        acceptance: [
+          "Schema adds FileExtensions table (Extension, Enabled, Notes).",
+          "DbInitializer seeds common extensions (docx, xlsx, pptx, pdf, txt).",
+          "Pipeline validates extension before upload with clear log entry."
+        ],
+        notes: ["Keep it consistent with existing schema-driven repo approach."]
+      },
+      {
+        id: "GLD-002",
+        project: "GraphLib.Core",
+        type: "Feature Request",
+        priority: 13,
+        title: "DB: Store resolved SharePoint IDs per run (siteId, driveId, folderId)",
+        summary: "Make runs auditable by recording the resolved IDs used for Graph operations.",
+        tags: ["audit", "ids", "observability"],
+        asA: "As a Security Reviewer",
+        iNeed: "resolved resource IDs captured",
+        soThat: "so we can audit exactly where content was written.",
+        acceptance: [
+          "Run (or FileEvent) stores siteId/driveId/folderId.",
+          "IDs are written once per run and reused across events.",
+          "Docs show how to query the last run’s target IDs."
+        ],
+        notes: ["This is low effort and pays off in troubleshooting."]
+      },
+      {
+        id: "GLD-003",
+        project: "GraphLib.Core",
+        type: "Bug Report",
+        priority: 14,
+        title: "Bug: SQLite boolean handling inconsistent across repositories",
+        summary: "Some reads use int conversion patterns; ensure all bool fields use GetInt32(i) != 0 consistently.",
+        tags: ["sqlite", "bugs", "consistency"],
+        asA: "As a Developer",
+        iNeed: "consistent bool conversions",
+        soThat: "so flags behave correctly across environments.",
+        acceptance: [
+          "All repositories conform to int-bool conversion guideline.",
+          "Add a quick smoke test query path to validate expected behavior.",
+          "No schema changes."
+        ],
+        notes: ["This is exactly in your coding guidelines—make it enforced."]
+      },
+
+      // ---- Docs / Web ----
+      {
+        id: "GLW-001",
+        project: "GraphLib",
+        type: "Web Changes/Updates",
+        priority: 15,
+        title: "Docs: Break reusable navigation into docs/nav.html",
+        summary: "Extract the navbar into a single HTML file and load it on each docs page (fallback if missing).",
+        tags: ["docs", "nav", "reuse"],
+        asA: "As a Maintainer",
+        iNeed: "one reusable docs nav",
+        soThat: "so changes propagate across pages without copy/paste.",
+        acceptance: [
+          "Create docs/nav.html containing the shared navbar markup.",
+          "Each docs page loads nav.html into a mount div via fetch() (with graceful fallback).",
+          "Nav includes a Print to PDF button/link."
+        ],
+        notes: ["This WorkItems page already implements the loader pattern."]
+      },
+      {
+        id: "GLW-002",
+        project: "GraphLib",
+        type: "Documentation",
+        priority: 16,
+        title: "Docs: Add 'Operations Guide' page (runbook)",
+        summary: "Write an ops-focused guide: required permissions, DB settings, typical run commands, troubleshooting flow.",
+        tags: ["runbook", "ops", "support"],
+        asA: "As an Operator",
+        iNeed: "a runbook-style guide",
+        soThat: "so I can run GraphLib without reading the source.",
+        acceptance: [
+          "Includes 'init DB' and 'run single file' commands.",
+          "Includes permission checklist (app-only, admin consent).",
+          "Includes DB path rules and explicit --db examples."
+        ],
+        notes: ["You’ve already got Troubleshooting and GettingStarted—this stitches them into a runbook."]
+      },
+      {
+        id: "GLW-003",
+        project: "GraphLib",
+        type: "Documentation",
+        priority: 17,
+        title: "Docs: Add 'Schema Reference' page for SQLite tables",
+        summary: "Document Run/FileEvent/EventLog/AppSettings tables (and any new tables) with sample queries.",
+        tags: ["sqlite", "docs", "schema"],
+        asA: "As a Developer",
+        iNeed: "a schema reference",
+        soThat: "so I can query runs and diagnose issues quickly.",
+        acceptance: [
+          "Lists tables + columns with brief meaning.",
+          "Includes 5–10 common queries (latest run, failures, timings).",
+          "Links to schema.sql as source of truth."
+        ],
+        notes: ["Keep it short; make it useful."]
+      },
+
+      // ---- Templates (board process) ----
+      {
+        id: "GLT-001",
+        project: "GraphLib",
+        type: "Weekly Ship Report",
+        priority: 18,
+        title: "Template: Weekly Ship Report (GraphLib)",
+        summary: "Create a consistent weekly report issue template: shipped, in progress, risks, decisions needed, next week plan.",
+        tags: ["process", "reporting", "stakeholders"],
+        asA: "As a Lead",
+        iNeed: "a weekly ship report template",
+        soThat: "so stakeholders get consistent visibility.",
+        acceptance: [
+          "Template includes: Shipped / In Progress / Risks / Decisions / Metrics / Next Week.",
+          "References run metrics from SQLite (runs, success rate, avg time).",
+          "Lightweight and copy/paste friendly."
+        ],
+        notes: ["This should be a pinned issue template in the repo eventually."]
+      },
+      {
+        id: "GLT-002",
+        project: "GraphLib",
+        type: "Blank issues",
+        priority: 19,
+        title: "Template: Bug Report (GraphLib standard)",
+        summary: "Standardize bug reports: environment, repro steps, expected vs actual, logs, DB query to attach run/event details.",
+        tags: ["process", "bugs", "supportability"],
+        asA: "As a Team",
+        iNeed: "a bug report template",
+        soThat: "so issues include the info we actually need.",
+        acceptance: [
+          "Includes required fields: Version, Command line, DB path, RunId, Stage, StatusCode.",
+          "Includes 'attach last 50 EventLog lines' query snippet.",
+          "Includes 'what changed' checkbox."
+        ],
+        notes: ["Helps prevent back-and-forth in issue threads."]
+      },
+      {
+        id: "GLT-003",
+        project: "GraphLib",
+        type: "User Story Template",
+        priority: 20,
+        title: "Template: User Story (GraphLib standard)",
+        summary: "Standard story format: As a / I need / so that; acceptance criteria; telemetry; docs impact; test notes.",
+        tags: ["process", "stories", "standards"],
+        asA: "As a Team",
+        iNeed: "a consistent story template",
+        soThat: "so stories are implementable and testable.",
+        acceptance: [
+          "Template includes Acceptance Criteria + Telemetry/Logging expectations.",
+          "Template includes Docs Update checkbox.",
+          "Template includes Test Notes section (happy path + one failure path)."
+        ],
+        notes: ["This becomes your default issue type for most work."]
+      }
+    ];
+
+    const typeClassMap = {
+      "Feature Request": "t-feature",
+      "Bug Report": "t-bug",
+      "User Story Template": "t-userstory",
+      "Web Changes/Updates": "t-web",
+      "Documentation": "t-doc",
+      "Weekly Ship Report": "t-ship",
+      "Decision Template": "t-decision",
+      "Release Work Item": "t-release",
+      "Blank issues": "t-blank"
+    };
+
+    const projectClassMap = {
+      "GraphLib": "p-graphlib",
+      "GraphLib.Core": "p-core",
+      "GraphLib.Console": "p-console"
+    };
+
+    function esc(s) {
+      return String(s ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+    }
+
+    function badgeForType(type) {
+      // use your "badge-soft" style if defined in style.css; otherwise Bootstrap badge works fine
+      return `<span class="badge badge-soft chip">${esc(type)}</span>`;
+    }
+
+    function badgeForProject(project) {
+      const icon = project === "GraphLib.Core" ? "bi-box" : project === "GraphLib.Console" ? "bi-terminal" : "bi-diagram-3";
+      return `<span class="badge badge-soft chip"><i class="bi ${icon} me-1"></i>${esc(project)}</span>`;
+    }
+
+    function priorityPill(n) {
+      let cls = "text-secondary";
+      let icon = "bi-arrow-down-up";
+      if (n <= 5) { cls = "text-danger"; icon = "bi-exclamation-triangle"; }
+      else if (n <= 12) { cls = "text-warning"; icon = "bi-flag"; }
+      else { cls = "text-success"; icon = "bi-check2"; }
+
+      return `<span class="status-pill ${cls}"><i class="bi ${icon} me-1"></i>P${n}</span>`;
+    }
+
+    function issueBodyMarkdown(i) {
+      const ac = (i.acceptance || []).map(x => `- [ ] ${x}`).join("\n");
+      const notes = (i.notes || []).map(x => `- ${x}`).join("\n");
+      const tags = (i.tags || []).map(t => `\`${t}\``).join(" ");
+
+      return `## ${i.id} — ${i.title}
+
+**Type:** ${i.type}
+**Project:** ${i.project}
+**Priority:** P${i.priority}
+**Tags:** ${tags}
+
+### User Story
+**As a** ${i.asA}  
+**I need** ${i.iNeed}  
+**So that** ${i.soThat}
+
+### Summary
+${i.summary}
+
+### Acceptance Criteria
+${ac || "- [ ] (add acceptance criteria)"}
+
+### Implementation Notes
+${notes || "- (add notes)"}
+
+### Telemetry / Logging
+- [ ] Log stage start/end and outcomes to EventLogRepository
+- [ ] Ensure RunId correlation is preserved
+- [ ] Capture status code + endpoint stage on failures
+
+### Docs Impact
+- [ ] Update GettingStarted / Troubleshooting / Schema docs as needed
+
+### Test Notes
+- [ ] Happy path validated
+- [ ] One failure path validated (e.g., auth/permissions, missing library, invalid extension)
+`;
+    }
+
+    function render() {
+      const grid = document.getElementById("issueGrid");
+      grid.innerHTML = "";
+
+      for (const i of issues) {
+        const tCls = typeClassMap[i.type] || "t-blank";
+        const pCls = projectClassMap[i.project] || "p-graphlib";
+        const textBlob = [i.title, i.summary, (i.tags || []).join(" "), i.id, i.type, i.project].join(" ").toLowerCase();
+
+        const hiddenId = `lb_${i.id.replaceAll("-", "_")}`;
+        const md = esc(issueBodyMarkdown(i));
+
+        // Hidden lightbox content (inline)
+        const hidden = document.createElement("div");
+        hidden.style.display = "none";
+        hidden.innerHTML = `
+          <div id="${hiddenId}" class="lb-wrap">
+            <div class="lb-head p-3">
+              <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+                <div>
+                  <div class="small text-secondary mb-1">${esc(i.id)} • ${esc(i.project)} • ${esc(i.type)} • P${esc(i.priority)}</div>
+                  <div class="h5 mb-0">${esc(i.title)}</div>
+                </div>
+                <div class="d-flex gap-2 no-print">
+                  <button class="btn btn-sm btn-outline-primary" type="button" data-copy="${hiddenId}_md">
+                    <i class="bi bi-clipboard me-1"></i>Copy Issue Body
+                  </button>
+                  <button class="btn btn-sm btn-outline-secondary" type="button" onclick="window.print()">
+                    <i class="bi bi-printer me-1"></i>Print
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="lb-body p-3">
+              <div class="callout mb-3">
+                <div class="fw-semibold">Summary</div>
+                <div class="small-muted">${esc(i.summary)}</div>
+              </div>
+
+              <div class="d-flex flex-wrap gap-2 mb-3">
+                ${badgeForProject(i.project)}
+                ${badgeForType(i.type)}
+                ${(i.tags || []).map(t => `<span class="badge badge-soft chip">#${esc(t)}</span>`).join("")}
+              </div>
+
+              <h3 class="h6">Issue Body (copy/paste into Git)</h3>
+              <div class="code-wrap">
+                <pre class="bg-light border rounded p-3 mb-0"><code id="${hiddenId}_md">${md}</code></pre>
+              </div>
+
+              <div class="small-muted mt-2">
+                Tip: You can paste this into a Git issue and then add labels for Project + Type.
+              </div>
+            </div>
+          </div>
+        `;
+        grid.appendChild(hidden);
+
+        // Card
+        const card = document.createElement("div");
+        card.className = `issue-item col-12 ${tCls} ${pCls}`;
+        card.setAttribute("data-priority", String(i.priority));
+        card.setAttribute("data-project", i.project);
+        card.setAttribute("data-type", i.type);
+        card.setAttribute("data-text", textBlob);
+
+        card.innerHTML = `
+          <div class="card h-100 issue-card">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                <div class="small text-secondary">${esc(i.id)}</div>
+                ${priorityPill(i.priority)}
+              </div>
+              <div class="h6 mb-2">${esc(i.title)}</div>
+              <p class="small text-secondary mb-3">${esc(i.summary)}</p>
+
+              <div class="d-flex flex-wrap issue-meta">
+                ${badgeForProject(i.project)}
+                ${badgeForType(i.type)}
+              </div>
+            </div>
+
+            <div class="card-footer bg-white border-top">
+              <a class="stretched-link glightbox"
+                 href="#${hiddenId}"
+                 data-glightbox="type: inline; width: 980px"
+                 aria-label="Open ${esc(i.id)} details"></a>
+              <div class="d-flex justify-content-between align-items-center small text-secondary">
+                <span>
+                  <i class="bi bi-arrows-fullscreen me-1"></i>Open details
+                </span>
+                <span>
+                  ${(i.tags || []).slice(0, 3).map(t => `#${esc(t)}`).join(" ")}
+                </span>
+              </div>
+            </div>
+          </div>
+        `;
+
+        grid.appendChild(card);
+      }
+
+      document.getElementById("countTotal").textContent = String(issues.length);
+    }
+
+    // --------------------------------------------
+    // Isotope + filtering
+    // --------------------------------------------
+    let iso = null;
+    let currentProjectFilter = "*";
+    let currentTypeFilter = "*";
+    let currentSearch = "";
+    let currentSort = "priority";
+
+    function combinedFilter(el) {
+      // class filters
+      if (currentProjectFilter !== "*" && !el.matches(currentProjectFilter)) return false;
+      if (currentTypeFilter !== "*" && !el.matches(currentTypeFilter)) return false;
+
+      // search filter
+      if (currentSearch) {
+        const t = (el.getAttribute("data-text") || "");
+        if (!t.includes(currentSearch)) return false;
+      }
+      return true;
+    }
+
+    function updateCounts() {
+      if (!iso) return;
+      const visible = iso.filteredItems?.length ?? 0;
+      document.getElementById("countVisible").textContent = String(visible);
+    }
+
+    function applyFilters() {
+      if (!iso) return;
+      iso.arrange({
+        filter: combinedFilter,
+        sortBy: currentSort
+      });
+      updateCounts();
+    }
+
+    function setChecked(btnGroupSelector, btn) {
+      const group = document.querySelector(btnGroupSelector);
+      if (!group) return;
+      group.querySelectorAll(".btn").forEach(b => b.classList.remove("is-checked"));
+      btn.classList.add("is-checked");
+    }
+
+    function initIsotope() {
+      const grid = document.querySelector("#issueGrid");
+      iso = new Isotope(grid, {
+        itemSelector: ".issue-item",
+        layoutMode: "fitRows",
+        getSortData: {
+          priority: (itemElem) => parseInt(itemElem.getAttribute("data-priority") || "999", 10),
+          project: (itemElem) => (itemElem.getAttribute("data-project") || ""),
+          type: (itemElem) => (itemElem.getAttribute("data-type") || "")
+        },
+        sortBy: "priority",
+        sortAscending: true
+      });
+
+      iso.on("arrangeComplete", updateCounts);
+      applyFilters();
+    }
+
+    // --------------------------------------------
+    // Copy buttons inside lightbox content
+    // --------------------------------------------
+    function wireCopyButtons() {
+      document.addEventListener("click", async (e) => {
+        const btn = e.target.closest("[data-copy]");
+        if (!btn) return;
+
+        const id = btn.getAttribute("data-copy");
+        const codeEl = document.getElementById(id);
+        if (!codeEl) return;
+
+        const text = codeEl.textContent || "";
+        try {
+          await navigator.clipboard.writeText(text);
+          btn.innerHTML = `<i class="bi bi-check2 me-1"></i>Copied`;
+          setTimeout(() => {
+            btn.innerHTML = `<i class="bi bi-clipboard me-1"></i>Copy Issue Body`;
+          }, 1200);
+        } catch {
+          // fallback: select text
+          const r = document.createRange();
+          r.selectNodeContents(codeEl);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(r);
+        }
+      });
+    }
+
+    // --------------------------------------------
+    // Startup
+    // --------------------------------------------
+    render();
+
+    // Init GLightbox
+    const lightbox = GLightbox({
+      selector: ".glightbox",
+      touchNavigation: true,
+      loop: false,
+      closeButton: true
+    });
+
+    wireCopyButtons();
+
+    // init Isotope after first render
+    initIsotope();
+
+    // --------------------------------------------
+    // UI events
+    // --------------------------------------------
+    document.getElementById("btnPrint")?.addEventListener("click", () => window.print());
+
+    document.getElementById("txtSearch")?.addEventListener("input", (e) => {
+      currentSearch = (e.target.value || "").trim().toLowerCase();
+      applyFilters();
+    });
+
+    document.getElementById("btnClearSearch")?.addEventListener("click", () => {
+      const t = document.getElementById("txtSearch");
+      t.value = "";
+      currentSearch = "";
+      applyFilters();
+      t.focus();
+    });
+
+    document.getElementById("btnReset")?.addEventListener("click", () => {
+      currentProjectFilter = "*";
+      currentTypeFilter = "*";
+      currentSearch = "";
+      currentSort = "priority";
+      document.getElementById("txtSearch").value = "";
+
+      // reset checked buttons
+      document.querySelectorAll("[data-filter-project]").forEach(b => b.classList.remove("is-checked"));
+      document.querySelectorAll("[data-filter-type]").forEach(b => b.classList.remove("is-checked"));
+      document.querySelectorAll("[data-sort]").forEach(b => b.classList.remove("is-checked"));
+
+      document.querySelector('[data-filter-project="*"]')?.classList.add("is-checked");
+      document.querySelector('[data-filter-type="*"]')?.classList.add("is-checked");
+      document.querySelector('[data-sort="priority"]')?.classList.add("is-checked");
+
+      applyFilters();
+    });
+
+    // Project filter buttons
+    document.querySelectorAll("[data-filter-project]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        currentProjectFilter = btn.getAttribute("data-filter-project") || "*";
+        document.querySelectorAll("[data-filter-project]").forEach(b => b.classList.remove("is-checked"));
+        btn.classList.add("is-checked");
+        applyFilters();
+      });
+    });
+
+    // Type filter buttons
+    document.querySelectorAll("[data-filter-type]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        currentTypeFilter = btn.getAttribute("data-filter-type") || "*";
+        document.querySelectorAll("[data-filter-type]").forEach(b => b.classList.remove("is-checked"));
+        btn.classList.add("is-checked");
+        applyFilters();
+      });
+    });
+
+    // Sort buttons
+    document.querySelectorAll("[data-sort]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        currentSort = btn.getAttribute("data-sort") || "priority";
+        document.querySelectorAll("[data-sort]").forEach(b => b.classList.remove("is-checked"));
+        btn.classList.add("is-checked");
+        applyFilters();
+      });
+    });
+
+    // --------------------------------------------
+    // Optional: if print mode requested (?print=1), auto-print
+    // --------------------------------------------
+    (function autoPrintIfRequested() {
+      const qs = new URLSearchParams(location.search);
+      if (qs.get("print") === "1") {
+        setTimeout(() => window.print(), 250);
+      }
+    })();
+  </script>
+</body>
+
+</html>
