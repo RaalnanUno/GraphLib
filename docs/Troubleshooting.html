@@ -17,25 +17,34 @@
 </head>
 
 <body>
-  <nav class="navbar navbar-expand-lg bg-white border-bottom sticky-top">
-    <div class="container">
-      <span class="navbar-brand brand fw-semibold">
-        <i class="bi bi-life-preserver me-2 text-primary"></i>
-        GraphLib Troubleshooting
-      </span>
-      <div class="d-flex gap-2">
-        <button class="btn btn-outline-secondary btn-sm" id="btnExpandAll" type="button">
-          <i class="bi bi-arrows-angle-expand me-1"></i>Expand all
-        </button>
-        <button class="btn btn-outline-secondary btn-sm" id="btnCollapseAll" type="button">
-          <i class="bi bi-arrows-angle-contract me-1"></i>Collapse all
-        </button>
-        <button class="btn btn-primary btn-sm" id="btnPrint" type="button">
-          <i class="bi bi-printer me-1"></i>Print
-        </button>
+  <!-- NAV: tries to load docs/nav.html; falls back to inline nav if missing -->
+  <div id="navMount">
+    <nav class="navbar navbar-expand-lg bg-white border-bottom sticky-top">
+      <div class="container">
+        <span class="navbar-brand brand fw-semibold">
+          <i class="bi bi-life-preserver me-2 text-primary"></i>
+          GraphLib Troubleshooting
+        </span>
+        <div class="d-flex gap-2 no-print">
+          <a class="btn btn-outline-secondary btn-sm" href="GettingStarted.html" title="Getting Started">
+            <i class="bi bi-rocket-takeoff me-1"></i>Getting Started
+          </a>
+          <a class="btn btn-outline-secondary btn-sm" href="Work%20Items%20Board.html" title="Work Items">
+            <i class="bi bi-kanban me-1"></i>Work Items
+          </a>
+          <button class="btn btn-outline-secondary btn-sm" id="btnExpandAll" type="button">
+            <i class="bi bi-arrows-angle-expand me-1"></i>Expand all
+          </button>
+          <button class="btn btn-outline-secondary btn-sm" id="btnCollapseAll" type="button">
+            <i class="bi bi-arrows-angle-contract me-1"></i>Collapse all
+          </button>
+          <button class="btn btn-primary btn-sm" id="btnPrint" type="button">
+            <i class="bi bi-printer me-1"></i>Print
+          </button>
+        </div>
       </div>
-    </div>
-  </nav>
+    </nav>
+  </div>
 
   <header class="py-4">
     <div class="container">
@@ -454,6 +463,27 @@ WHERE Id = 1;</code></pre>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
     integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
     crossorigin="anonymous"></script>
+
+  <script>
+    // Optional reusable NAV: load docs/nav.html if present
+    (async function tryLoadNav() {
+      const mount = document.getElementById('navMount');
+      if (!mount) return;
+
+      // If querystring forces inline nav: ?nav=inline
+      const qs = new URLSearchParams(location.search);
+      if (qs.get('nav') === 'inline') return;
+
+      try {
+        const resp = await fetch('nav.html', { cache: 'no-cache' });
+        if (!resp.ok) return;
+        const html = await resp.text();
+        if (html && html.trim().length > 20) {
+          mount.innerHTML = html;
+        }
+      } catch { /* ignore */ }
+    })();
+  </script>
 
   <script src="app.js"> </script>
 </body>

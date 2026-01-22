@@ -86,25 +86,34 @@
 </head>
 
 <body id="top">
-  <nav class="navbar navbar-expand-lg bg-white border-bottom sticky-top no-print">
-    <div class="container">
-      <span class="navbar-brand brand fw-semibold">
-        <i class="bi bi-rocket-takeoff me-2 text-primary"></i>
-        GraphLib Getting Started
-      </span>
-      <div class="d-flex gap-2">
-        <button class="btn btn-outline-secondary btn-sm" id="btnExpandAll" type="button">
-          <i class="bi bi-arrows-angle-expand me-1"></i>Expand all
-        </button>
-        <button class="btn btn-outline-secondary btn-sm" id="btnCollapseAll" type="button">
-          <i class="bi bi-arrows-angle-contract me-1"></i>Collapse all
-        </button>
-        <button class="btn btn-primary btn-sm" id="btnPrint" type="button">
-          <i class="bi bi-printer me-1"></i>Print
-        </button>
+  <!-- NAV: tries to load docs/nav.html; falls back to inline nav if missing -->
+  <div id="navMount">
+    <nav class="navbar navbar-expand-lg bg-white border-bottom sticky-top no-print">
+      <div class="container">
+        <span class="navbar-brand brand fw-semibold">
+          <i class="bi bi-rocket-takeoff me-2 text-primary"></i>
+          GraphLib Getting Started
+        </span>
+        <div class="d-flex gap-2 no-print">
+          <a class="btn btn-outline-secondary btn-sm" href="Work%20Items%20Board.html" title="Work Items">
+            <i class="bi bi-kanban me-1"></i>Work Items
+          </a>
+          <a class="btn btn-outline-secondary btn-sm" href="Troubleshooting.html" title="Troubleshooting">
+            <i class="bi bi-life-preserver me-1"></i>Troubleshooting
+          </a>
+          <button class="btn btn-outline-secondary btn-sm" id="btnExpandAll" type="button">
+            <i class="bi bi-arrows-angle-expand me-1"></i>Expand all
+          </button>
+          <button class="btn btn-outline-secondary btn-sm" id="btnCollapseAll" type="button">
+            <i class="bi bi-arrows-angle-contract me-1"></i>Collapse all
+          </button>
+          <button class="btn btn-primary btn-sm" id="btnPrint" type="button">
+            <i class="bi bi-printer me-1"></i>Print
+          </button>
+        </div>
       </div>
-    </div>
-  </nav>
+    </nav>
+  </div>
 
   <header class="py-4">
     <div class="container">
@@ -362,9 +371,9 @@ dotnet run -c Release --project .\GraphLib.Console\GraphLib.Console.csproj -- in
                     <pre class="bg-light border rounded p-3 mb-0"><code id="sqlSettings">UPDATE AppSettings SET
   SiteUrl      = 'https://tenant.sharepoint.com/sites/SiteName',
   LibraryName  = 'Shared Documents',
-  TenantId     = '&lt;TENANT_ID&gt;',
-  ClientId     = '&lt;CLIENT_ID&gt;',
-  ClientSecret = '&lt;CLIENT_SECRET_VALUE&gt;'
+  TenantId     = &lt;TENANT_ID&gt;,
+  ClientId     = &lt;CLIENT_ID&gt;,
+  ClientSecret = &lt;CLIENT_SECRET_VALUE&gt;
 WHERE Id = 1;</code></pre>
                   </div>
 
@@ -572,6 +581,25 @@ dotnet run -c Release --project .\GraphLib.Console\GraphLib.Console.csproj -- ru
 
   <!-- Page JS -->
   <script>
+    // Optional reusable NAV: load docs/nav.html if present
+    (async function tryLoadNav() {
+      const mount = document.getElementById('navMount');
+      if (!mount) return;
+
+      // If querystring forces inline nav: ?nav=inline
+      const qs = new URLSearchParams(location.search);
+      if (qs.get('nav') === 'inline') return;
+
+      try {
+        const resp = await fetch('nav.html', { cache: 'no-cache' });
+        if (!resp.ok) return;
+        const html = await resp.text();
+        if (html && html.trim().length > 20) {
+          mount.innerHTML = html;
+        }
+      } catch { /* ignore */ }
+    })();
+
     // Optional: lightweight "embed on open, clear on close" to avoid background playback.
     // Replace these with real embed URLs later (YouTube/Stream/Vimeo/etc.).
     const VIDEO_URLS = {
