@@ -26,3 +26,10 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+/DocFiles/
+/.vs/
+/src/GraphLib.Core/bin/
+/src/GraphLib.Console/bin/
+/src/GraphLib.Core/obj/
+/src/GraphLib.Console/obj/
