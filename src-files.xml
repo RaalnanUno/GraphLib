@@ -4,6 +4,13 @@
     <file path="src\GraphLib.Console\Cli\Commands.cs" />
     <file path="src\GraphLib.Console\GraphLib.Console.csproj" />
     <file path="src\GraphLib.Console\Program.cs" />
+    <file path="src\GraphLib.Core.Tests\Cli\ArgsParserTests.cs" />
+    <file path="src\GraphLib.Core.Tests\Data\SqlitePathsTests.cs" />
+    <file path="src\GraphLib.Core.Tests\Graph\GraphSmokeTests.cs" />
+    <file path="src\GraphLib.Core.Tests\GraphLib.Core.Tests.csproj" />
+    <file path="src\GraphLib.Core.Tests\Models\ConflictBehaviorTests.cs" />
+    <file path="src\GraphLib.Core.Tests\Pipeline\PipelineEventsTests.cs" />
+    <file path="src\GraphLib.Core.Tests\Secrets\DbSecretProviderTests.cs" />
     <file path="src\GraphLib.Core\Data\DbConnectionFactory.cs" />
     <file path="src\GraphLib.Core\Data\DbInitializer.cs" />
     <file path="src\GraphLib.Core\Data\Repositories\EventLogRepository.cs" />
