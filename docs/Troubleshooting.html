@@ -1,61 +1,21 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>GraphLib — Troubleshooting</title>
 
   <!-- Bootstrap 5 (CSS) -->
-  <link
-    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-    rel="stylesheet"
-    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
-    crossorigin="anonymous"
-  />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous" />
 
   <!-- Bootstrap Icons (optional) -->
-  <link
-    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
-    rel="stylesheet"
-  />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
 
-  <style>
-    :root { color-scheme: light; }
-    body { background: #f8f9fa; }
-    .brand { letter-spacing: .2px; }
-    .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-    pre code { white-space: pre; }
-    .code-wrap { position: relative; }
-    .copy-btn {
-      position: absolute;
-      top: .5rem;
-      right: .5rem;
-      z-index: 2;
-    }
-    .small-muted { color: #6c757d; font-size: .9rem; }
-    .status-pill { font-weight: 600; }
-    .anchor-link { text-decoration: none; }
-    .anchor-link:hover { text-decoration: underline; }
-    .card { border: 0; box-shadow: 0 6px 18px rgba(0,0,0,.06); }
-    .toc a { text-decoration: none; }
-    .toc a:hover { text-decoration: underline; }
-    .badge-soft {
-      background: rgba(13,110,253,.08);
-      color: #0d6efd;
-      border: 1px solid rgba(13,110,253,.18);
-      font-weight: 600;
-    }
-    .callout {
-      border-left: 4px solid #0d6efd;
-      background: #fff;
-      padding: 1rem 1rem;
-      border-radius: .5rem;
-    }
-    .callout-warning { border-left-color: #ffc107; }
-    .callout-danger { border-left-color: #dc3545; }
-    .callout-success { border-left-color: #198754; }
-  </style>
+<link rel="stylesheet" href="style.css">
 </head>
+
 <body>
   <nav class="navbar navbar-expand-lg bg-white border-bottom sticky-top">
     <div class="container">
@@ -87,7 +47,12 @@
               <p class="mb-0 text-secondary">
                 This guide covers the most common setup and runtime issues when running
                 <span class="kbd">GraphLib</span> (app-only Microsoft Graph → SharePoint upload + PDF conversion),
-                including the exact fix we hit: <span class="badge badge-soft">401 on resolveSite</span> due to missing <b>admin consent</b>.
+                including the exact fix we hit: <span class="badge badge-soft">401 on resolveSite</span> due to missing
+                <b>admin consent</b>.
+
+                Use <span class="badge badge-soft">
+                  <a href="GettingStarted.html">Getting Started</a>
+                </span> for initial setup.
               </p>
             </div>
           </div>
@@ -164,7 +129,8 @@
             <!-- 1) 401 resolveSite -->
             <div class="accordion-item" id="t401">
               <h2 class="accordion-header">
-                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#c401" aria-expanded="true">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#c401"
+                  aria-expanded="true">
                   <span class="me-2 status-pill text-danger"><i class="bi bi-shield-x me-1"></i>401</span>
                   Unauthorized on <span class="kbd ms-1">resolveSite</span> (app-only)
                 </button>
@@ -174,7 +140,8 @@
                   <div class="callout callout-danger mb-3">
                     <div class="fw-semibold">Most common root cause</div>
                     <div class="small-muted">
-                      API permissions exist but are <b>Not granted</b>. You must click <b>Grant admin consent</b> for the tenant.
+                      API permissions exist but are <b>Not granted</b>. You must click <b>Grant admin consent</b> for
+                      the tenant.
                     </div>
                   </div>
 
@@ -204,7 +171,7 @@
                     <button class="btn btn-sm btn-outline-primary copy-btn" data-copy="#ps401">
                       <i class="bi bi-clipboard me-1"></i>Copy
                     </button>
-<pre class="bg-light border rounded p-3 mb-0"><code id="ps401">$tenantId = "&lt;TENANT_ID&gt;"
+                    <pre class="bg-light border rounded p-3 mb-0"><code id="ps401">$tenantId = "&lt;TENANT_ID&gt;"
 $clientId = "&lt;CLIENT_ID&gt;"
 $clientSecret = "&lt;CLIENT_SECRET_VALUE&gt;" # value, not secret id
 
@@ -238,7 +205,8 @@ Invoke-RestMethod -Method Get `
             <!-- 2) MSAL -->
             <div class="accordion-item" id="msal">
               <h2 class="accordion-header">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#cmsal">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                  data-bs-target="#cmsal">
                   <i class="bi bi-key me-2 text-warning"></i>
                   MSAL errors (invalid application identifier / secret)
                 </button>
@@ -248,7 +216,8 @@ Invoke-RestMethod -Method Get `
                   <div class="callout callout-warning mb-3">
                     <div class="fw-semibold">What to store in SQLite</div>
                     <div class="small-muted">
-                      <b>ClientSecret</b> must be the <b>Value</b> shown when you create the secret — not the <b>Secret ID</b>.
+                      <b>ClientSecret</b> must be the <b>Value</b> shown when you create the secret — not the <b>Secret
+                        ID</b>.
                     </div>
                   </div>
 
@@ -270,7 +239,7 @@ Invoke-RestMethod -Method Get `
                     <button class="btn btn-sm btn-outline-primary copy-btn" data-copy="#sqlmsal">
                       <i class="bi bi-clipboard me-1"></i>Copy
                     </button>
-<pre class="bg-light border rounded p-3 mb-0"><code id="sqlmsal">UPDATE AppSettings SET
+                    <pre class="bg-light border rounded p-3 mb-0"><code id="sqlmsal">UPDATE AppSettings SET
   TenantId = '&lt;TENANT_ID&gt;',
   ClientId = '&lt;CLIENT_ID&gt;',
   ClientSecret = '&lt;CLIENT_SECRET_VALUE&gt;'
@@ -283,7 +252,8 @@ WHERE Id = 1;</code></pre>
             <!-- 3) SiteUrl -->
             <div class="accordion-item" id="siteurl">
               <h2 class="accordion-header">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#csiteurl">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                  data-bs-target="#csiteurl">
                   <i class="bi bi-link-45deg me-2 text-primary"></i>
                   SiteUrl is wrong (points to library/folder path)
                 </button>
@@ -292,7 +262,8 @@ WHERE Id = 1;</code></pre>
                 <div class="accordion-body">
                   <h3 class="h6">Rule</h3>
                   <p class="small mb-2">
-                    <span class="kbd">SiteUrl</span> must point to the <b>SharePoint site</b>, not the document library or a folder.
+                    <span class="kbd">SiteUrl</span> must point to the <b>SharePoint site</b>, not the document library
+                    or a folder.
                   </p>
 
                   <div class="row g-3">
@@ -314,7 +285,8 @@ WHERE Id = 1;</code></pre>
                   <p class="small mb-0">
                     GraphLib resolves the site via Graph using:
                     <span class="kbd">/sites/{hostname}:{server-relative-path}</span>
-                    which expects the site path (e.g., <span class="kbd">/sites/AlphaOmega</span>), not a deeper library/folder URL.
+                    which expects the site path (e.g., <span class="kbd">/sites/AlphaOmega</span>), not a deeper
+                    library/folder URL.
                   </p>
                 </div>
               </div>
@@ -323,7 +295,8 @@ WHERE Id = 1;</code></pre>
             <!-- 4) resolveDrive -->
             <div class="accordion-item" id="drive">
               <h2 class="accordion-header">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#cdrive">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                  data-bs-target="#cdrive">
                   <i class="bi bi-folder2-open me-2 text-secondary"></i>
                   LibraryName / resolveDrive failures
                 </button>
@@ -339,13 +312,16 @@ WHERE Id = 1;</code></pre>
 
                   <h3 class="h6">Fix</h3>
                   <p class="small mb-2">
-                    <span class="kbd">LibraryName</span> must match the document library’s <b>display name</b> in SharePoint.
-                    Common names include <span class="kbd">Documents</span> or <span class="kbd">Shared Documents</span>, or your custom name (e.g., <span class="kbd">GraphLib</span>).
+                    <span class="kbd">LibraryName</span> must match the document library’s <b>display name</b> in
+                    SharePoint.
+                    Common names include <span class="kbd">Documents</span> or <span class="kbd">Shared
+                      Documents</span>, or your custom name (e.g., <span class="kbd">GraphLib</span>).
                   </p>
 
                   <h3 class="h6">Tip</h3>
                   <p class="small mb-0">
-                    Open the site in the browser, click the library in the left navigation, and use that exact title for <span class="kbd">LibraryName</span>.
+                    Open the site in the browser, click the library in the left navigation, and use that exact title for
+                    <span class="kbd">LibraryName</span>.
                   </p>
                 </div>
               </div>
@@ -354,7 +330,8 @@ WHERE Id = 1;</code></pre>
             <!-- 5) SQLite updates -->
             <div class="accordion-item" id="sqlite">
               <h2 class="accordion-header">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#csqlite">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                  data-bs-target="#csqlite">
                   <i class="bi bi-database me-2 text-success"></i>
                   SQLite updates don’t “stick” (viewer doesn’t commit / refresh)
                 </button>
@@ -378,7 +355,8 @@ WHERE Id = 1;</code></pre>
                     <button class="btn btn-sm btn-outline-primary copy-btn" data-copy="#runsql1">
                       <i class="bi bi-clipboard me-1"></i>Copy
                     </button>
-<pre class="bg-light border rounded p-3 mb-0"><code id="runsql1">.\RunBat\run-sql.bat ".\RunBat\update-settings.sql"</code></pre>
+                    <pre
+                      class="bg-light border rounded p-3 mb-0"><code id="runsql1">.\RunBat\run-sql.bat ".\RunBat\update-settings.sql"</code></pre>
                   </div>
 
                   <h3 class="h6 mt-3">Verify values</h3>
@@ -386,7 +364,8 @@ WHERE Id = 1;</code></pre>
                     <button class="btn btn-sm btn-outline-primary copy-btn" data-copy="#runsql2">
                       <i class="bi bi-clipboard me-1"></i>Copy
                     </button>
-<pre class="bg-light border rounded p-3 mb-0"><code id="runsql2">.\RunBat\run-sql.bat "SELECT SiteUrl, LibraryName, TenantId, ClientId FROM AppSettings WHERE Id=1;"</code></pre>
+                    <pre
+                      class="bg-light border rounded p-3 mb-0"><code id="runsql2">.\RunBat\run-sql.bat "SELECT SiteUrl, LibraryName, TenantId, ClientId FROM AppSettings WHERE Id=1;"</code></pre>
                   </div>
                 </div>
               </div>
@@ -395,7 +374,8 @@ WHERE Id = 1;</code></pre>
             <!-- 6) DB path -->
             <div class="accordion-item" id="dbpath">
               <h2 class="accordion-header">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#cdbpath">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                  data-bs-target="#cdbpath">
                   <i class="bi bi-signpost-split me-2 text-info"></i>
                   Confirm which DB GraphLib is using
                 </button>
@@ -412,7 +392,7 @@ WHERE Id = 1;</code></pre>
                     <button class="btn btn-sm btn-outline-primary copy-btn" data-copy="#runexplicit">
                       <i class="bi bi-clipboard me-1"></i>Copy
                     </button>
-<pre class="bg-light border rounded p-3 mb-0"><code id="runexplicit">dotnet run -c Release --project .\src\GraphLib.Console\GraphLib.Console.csproj -- run `
+                    <pre class="bg-light border rounded p-3 mb-0"><code id="runexplicit">dotnet run -c Release --project .\src\GraphLib.Console\GraphLib.Console.csproj -- run `
   --db ".\src\GraphLib.Console\bin\Release\net8.0\Data\GraphLib.db" `
   --file "C:\path\input.docx"</code></pre>
                   </div>
@@ -427,7 +407,8 @@ WHERE Id = 1;</code></pre>
             <!-- 7) Success checklist -->
             <div class="accordion-item" id="doit">
               <h2 class="accordion-header">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#cdoit">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                  data-bs-target="#cdoit">
                   <i class="bi bi-clipboard2-check me-2 text-success"></i>
                   Minimum “success” checklist
                 </button>
@@ -438,7 +419,8 @@ WHERE Id = 1;</code></pre>
                     <li>✅ App Registration exists in tenant</li>
                     <li>✅ Graph <b>Application</b> permissions added (Sites.Read.* / Sites.ReadWrite.*)</li>
                     <li>✅ <b>Admin consent granted</b> for tenant</li>
-                    <li>✅ <span class="kbd">TenantId</span> / <span class="kbd">ClientId</span> / <span class="kbd">ClientSecret (Value)</span> stored in SQLite</li>
+                    <li>✅ <span class="kbd">TenantId</span> / <span class="kbd">ClientId</span> / <span
+                        class="kbd">ClientSecret (Value)</span> stored in SQLite</li>
                     <li>✅ <span class="kbd">SiteUrl</span> points to the SharePoint site (not library/folder)</li>
                     <li>✅ <span class="kbd">LibraryName</span> matches SharePoint library display name</li>
                     <li>✅ You run against the same SQLite DB you update</li>
@@ -469,52 +451,11 @@ WHERE Id = 1;</code></pre>
   </footer>
 
   <!-- Bootstrap 5 (JS Bundle includes Popper) -->
-  <script
-    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
     integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
-    crossorigin="anonymous"
-  ></script>
+    crossorigin="anonymous"></script>
 
-  <script>
-    // Copy-to-clipboard for code blocks
-    document.querySelectorAll("[data-copy]").forEach(btn => {
-      btn.addEventListener("click", async () => {
-        const sel = btn.getAttribute("data-copy");
-        const el = document.querySelector(sel);
-        if (!el) return;
-
-        const text = el.innerText;
-        try {
-          await navigator.clipboard.writeText(text);
-          const original = btn.innerHTML;
-          btn.innerHTML = '<i class="bi bi-check2 me-1"></i>Copied';
-          btn.classList.remove("btn-outline-primary");
-          btn.classList.add("btn-success");
-          setTimeout(() => {
-            btn.innerHTML = original;
-            btn.classList.add("btn-outline-primary");
-            btn.classList.remove("btn-success");
-          }, 1200);
-        } catch (e) {
-          alert("Copy failed. Your browser may block clipboard access.");
-        }
-      });
-    });
-
-    // Expand/Collapse all accordions
-    const accordionEl = document.getElementById("accordionTroubleshooting");
-    const items = accordionEl ? accordionEl.querySelectorAll(".accordion-collapse") : [];
-
-    document.getElementById("btnExpandAll")?.addEventListener("click", () => {
-      items.forEach(el => new bootstrap.Collapse(el, { show: true }));
-    });
-
-    document.getElementById("btnCollapseAll")?.addEventListener("click", () => {
-      items.forEach(el => new bootstrap.Collapse(el, { hide: true }));
-    });
-
-    // Print
-    document.getElementById("btnPrint")?.addEventListener("click", () => window.print());
-  </script>
+  <script src="app.js"> </script>
 </body>
+
 </html>
