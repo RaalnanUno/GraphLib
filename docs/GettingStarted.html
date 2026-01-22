@@ -15,6 +15,74 @@
 
   <link rel="stylesheet" href="style.css">
 
+  <!-- Page-specific helpers -->
+  <style>
+    /* Video cards */
+    .video-card-thumb {
+      position: relative;
+      border-radius: .75rem;
+      overflow: hidden;
+      background: #0b1220;
+      aspect-ratio: 16 / 9;
+    }
+
+    .video-card-thumb::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(255, 255, 255, .18), transparent 35%),
+        linear-gradient(135deg, rgba(13, 110, 253, .25), rgba(0, 0, 0, 0) 55%),
+        linear-gradient(0deg, rgba(0, 0, 0, .55), rgba(0, 0, 0, .15));
+      pointer-events: none;
+    }
+
+    .video-card-thumb .video-card-label {
+      position: absolute;
+      left: .75rem;
+      bottom: .75rem;
+      z-index: 2;
+      color: #fff;
+      font-weight: 600;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, .35);
+    }
+
+    .video-card-thumb .video-card-play {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      z-index: 2;
+      color: #fff;
+    }
+
+    .video-card-thumb .video-card-play i {
+      font-size: 2.75rem;
+      filter: drop-shadow(0 8px 14px rgba(0, 0, 0, .35));
+      opacity: .95;
+    }
+
+    /* Modal video sizing */
+    .video-modal .modal-dialog {
+      max-width: 980px;
+    }
+
+    .video-modal .ratio {
+      border-radius: .75rem;
+      overflow: hidden;
+      background: #000;
+    }
+
+    /* Small hover polish */
+    .video-launch:hover .video-card-thumb i {
+      transform: scale(1.05);
+      transition: transform .15s ease;
+    }
+
+    .video-launch {
+      cursor: pointer;
+    }
+  </style>
 </head>
 
 <body id="top">
@@ -66,8 +134,7 @@
               <ul class="mb-0 small">
                 <li>Restore/build solution</li>
                 <li>Run <span class="kbd">init</span> once to create SQLite schema</li>
-                <li>Set <span class="kbd">AppSettings</span> values (SiteUrl / LibraryName / TenantId / ClientId /
-                  Secret)</li>
+                <li>Set <span class="kbd">AppSettings</span> values (SiteUrl / LibraryName / TenantId / ClientId / Secret)</li>
                 <li>Run <span class="kbd">run</span> with a test file</li>
                 <li>If something fails: open <span class="kbd">Troubleshooting.html</span></li>
               </ul>
@@ -84,8 +151,7 @@
               <div>
                 <div class="fw-semibold">Recommended workflow</div>
                 <div class="small-muted">
-                  Build → init DB → update <span class="kbd">AppSettings</span> → (optional) PowerShell site test → run
-                  GraphLib.
+                  Build → init DB → update <span class="kbd">AppSettings</span> → (optional) PowerShell site test → run GraphLib.
                 </div>
               </div>
             </div>
@@ -99,9 +165,12 @@
   <main class="pb-5">
     <div class="container">
       <div class="row g-3">
-        <!-- TOC -->
-        <div class="col-12 col-lg-4">
-          <div class="card">
+
+        <!-- LEFT ASIDE -->
+        <aside class="col-12 col-lg-4">
+
+          <!-- TOC -->
+          <div class="card mb-3">
             <div class="card-body toc">
               <div class="d-flex align-items-center gap-2 mb-2">
                 <i class="bi bi-list-task text-primary"></i>
@@ -122,10 +191,67 @@
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Main accordion -->
-        <div class="col-12 col-lg-8">
+          <!-- VIDEO CARD: Initialize DB -->
+          <div class="card mb-3">
+            <div class="card-body">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="d-flex align-items-center gap-2">
+                  <i class="bi bi-database-add text-success"></i>
+                  <h2 class="h6 mb-0">Video: Initialize DB</h2>
+                </div>
+                <span class="badge badge-soft">2–3 min</span>
+              </div>
+
+              <div class="video-launch" data-bs-toggle="modal" data-bs-target="#videoInitDb">
+                <div class="video-card-thumb">
+                  <div class="video-card-play">
+                    <i class="bi bi-play-circle-fill"></i>
+                  </div>
+                  <div class="video-card-label small">
+                    Placeholder • Click to play
+                  </div>
+                </div>
+              </div>
+
+              <div class="small-muted mt-2">
+                Shows: <span class="kbd">dotnet run … init</span> and where the DB file lands.
+              </div>
+            </div>
+          </div>
+
+          <!-- VIDEO CARD: Convert a File -->
+          <div class="card">
+            <div class="card-body">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="d-flex align-items-center gap-2">
+                  <i class="bi bi-file-earmark-play text-primary"></i>
+                  <h2 class="h6 mb-0">Video: Convert a File</h2>
+                </div>
+                <span class="badge badge-soft">3–5 min</span>
+              </div>
+
+              <div class="video-launch" data-bs-toggle="modal" data-bs-target="#videoConvertFile">
+                <div class="video-card-thumb">
+                  <div class="video-card-play">
+                    <i class="bi bi-play-circle-fill"></i>
+                  </div>
+                  <div class="video-card-label small">
+                    Placeholder • Click to play
+                  </div>
+                </div>
+              </div>
+
+              <div class="small-muted mt-2">
+                Shows: <span class="kbd">dotnet run … run --file …</span> end-to-end.
+              </div>
+            </div>
+          </div>
+
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <section class="col-12 col-lg-8">
           <div class="accordion" id="accordionGettingStarted">
 
             <!-- 1) Prereqs -->
@@ -149,8 +275,7 @@
                     <div class="fw-semibold">Important</div>
                     <div class="small-muted">
                       App-only uploads require Graph <b>Application permissions</b> and <b>Admin consent granted</b>.
-                      If you hit a 401 at <span class="kbd">resolveSite</span>, open <span
-                        class="kbd">Troubleshooting.html</span>.
+                      If you hit a 401 at <span class="kbd">resolveSite</span>, open <span class="kbd">Troubleshooting.html</span>.
                     </div>
                   </div>
                 </div>
@@ -208,8 +333,7 @@ dotnet run -c Release --project .\GraphLib.Console\GraphLib.Console.csproj -- in
                   </div>
 
                   <div class="small-muted mt-2">
-                    Tip: if you want a specific DB file, add <span class="kbd">--db</span> (see “Run with explicit DB
-                    path” below).
+                    Tip: if you want a specific DB file, add <span class="kbd">--db</span> (see “Run with explicit DB path” below).
                   </div>
                 </div>
               </div>
@@ -274,15 +398,13 @@ WHERE Id = 1;</code></pre>
                     <button class="btn btn-sm btn-outline-primary copy-btn no-print" data-copy="#cmdRunBasic">
                       <i class="bi bi-clipboard me-1"></i>Copy
                     </button>
-                    <pre
-                      class="bg-light border rounded p-3 mb-0"><code id="cmdRunBasic">cd src
+                    <pre class="bg-light border rounded p-3 mb-0"><code id="cmdRunBasic">cd src
 dotnet run -c Release --project .\GraphLib.Console\GraphLib.Console.csproj -- run `
   --file "C:\source\repos\RaalnanUno\GraphLib\DocFiles\Rahsaan_Pringle_Cover_Letter_Creative_Merchandising_Lead.docx"</code></pre>
                   </div>
 
                   <div class="small-muted mt-2">
-                    If you see 401 at <span class="kbd">resolveSite</span>, it’s almost always <b>admin consent</b> or
-                    permissions.
+                    If you see 401 at <span class="kbd">resolveSite</span>, it’s almost always <b>admin consent</b> or permissions.
                     Open <span class="kbd">Troubleshooting.html</span>.
                   </div>
                 </div>
@@ -338,8 +460,7 @@ dotnet run -c Release --project .\GraphLib.Console\GraphLib.Console.csproj -- ru
                     <button class="btn btn-sm btn-outline-primary copy-btn no-print" data-copy="#cmdRunSqlScript">
                       <i class="bi bi-clipboard me-1"></i>Copy
                     </button>
-                    <pre
-                      class="bg-light border rounded p-3 mb-0"><code id="cmdRunSqlScript">.\RunBat\run-sql.bat ".\RunBat\update-settings.sql"</code></pre>
+                    <pre class="bg-light border rounded p-3 mb-0"><code id="cmdRunSqlScript">.\RunBat\run-sql.bat ".\RunBat\update-settings.sql"</code></pre>
                   </div>
 
                   <h3 class="h6 mt-3">Quick verify (select)</h3>
@@ -347,16 +468,14 @@ dotnet run -c Release --project .\GraphLib.Console\GraphLib.Console.csproj -- ru
                     <button class="btn btn-sm btn-outline-primary copy-btn no-print" data-copy="#cmdRunSqlSelect">
                       <i class="bi bi-clipboard me-1"></i>Copy
                     </button>
-                    <pre
-                      class="bg-light border rounded p-3 mb-0"><code id="cmdRunSqlSelect">.\RunBat\run-sql.bat "SELECT SiteUrl, LibraryName, TenantId, ClientId FROM AppSettings WHERE Id=1;"</code></pre>
+                    <pre class="bg-light border rounded p-3 mb-0"><code id="cmdRunSqlSelect">.\RunBat\run-sql.bat "SELECT SiteUrl, LibraryName, TenantId, ClientId FROM AppSettings WHERE Id=1;"</code></pre>
                   </div>
 
                   <div class="callout callout-warning mt-3">
                     <div class="fw-semibold">If your repo doesn’t have RunBat yet</div>
                     <div class="small-muted">
                       Keep this section anyway as a placeholder, or delete it.
-                      It’s a good “team-friendly” workflow because it’s repeatable and produces a clean success/failure
-                      signal.
+                      It’s a good “team-friendly” workflow because it’s repeatable and produces a clean success/failure signal.
                     </div>
                   </div>
                 </div>
@@ -364,7 +483,8 @@ dotnet run -c Release --project .\GraphLib.Console\GraphLib.Console.csproj -- ru
             </div>
 
           </div><!-- /accordion -->
-        </div><!-- /col -->
+        </section>
+
       </div><!-- /row -->
     </div><!-- /container -->
   </main>
@@ -384,14 +504,104 @@ dotnet run -c Release --project .\GraphLib.Console\GraphLib.Console.csproj -- ru
     </div>
   </footer>
 
+  <!-- Video Modals (Lightboxes) -->
+  <!-- Modal: Initialize DB -->
+  <div class="modal fade video-modal" id="videoInitDb" tabindex="-1" aria-labelledby="videoInitDbLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="videoInitDbLabel">
+            <i class="bi bi-database-add text-success me-2"></i>
+            Initialize DB
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="ratio ratio-16x9">
+            <!-- Placeholder: replace src with your real embed URL -->
+            <iframe
+              id="iframeInitDb"
+              src="about:blank"
+              title="Initialize DB Video"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen
+            ></iframe>
+          </div>
+          <div class="small-muted mt-2">
+            Placeholder: set an embed URL when your video is ready.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Convert a File -->
+  <div class="modal fade video-modal" id="videoConvertFile" tabindex="-1" aria-labelledby="videoConvertFileLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="videoConvertFileLabel">
+            <i class="bi bi-file-earmark-play text-primary me-2"></i>
+            Convert a File
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="ratio ratio-16x9">
+            <!-- Placeholder: replace src with your real embed URL -->
+            <iframe
+              id="iframeConvertFile"
+              src="about:blank"
+              title="Convert a File Video"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen
+            ></iframe>
+          </div>
+          <div class="small-muted mt-2">
+            Placeholder: set an embed URL when your video is ready.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Bootstrap 5 (JS Bundle includes Popper) -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
     integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
     crossorigin="anonymous"></script>
 
-  <script src="app.js">
+  <!-- Page JS -->
+  <script>
+    // Optional: lightweight "embed on open, clear on close" to avoid background playback.
+    // Replace these with real embed URLs later (YouTube/Stream/Vimeo/etc.).
+    const VIDEO_URLS = {
+      initDb: "about:blank",        // e.g. "https://www.youtube.com/embed/VIDEO_ID?autoplay=1"
+      convertFile: "about:blank"    // e.g. "https://www.youtube.com/embed/VIDEO_ID?autoplay=1"
+    };
 
+    function wireVideoModal(modalId, iframeId, urlKey) {
+      const modalEl = document.getElementById(modalId);
+      const iframe = document.getElementById(iframeId);
+      if (!modalEl || !iframe) return;
+
+      modalEl.addEventListener("show.bs.modal", () => {
+        iframe.src = VIDEO_URLS[urlKey] || "about:blank";
+      });
+
+      modalEl.addEventListener("hidden.bs.modal", () => {
+        iframe.src = "about:blank";
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      wireVideoModal("videoInitDb", "iframeInitDb", "initDb");
+      wireVideoModal("videoConvertFile", "iframeConvertFile", "convertFile");
+    });
   </script>
+
+  <!-- Your shared scripts -->
+  <script src="app.js"></script>
+
 </body>
 
 </html>
