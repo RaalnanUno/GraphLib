@@ -771,9 +771,12 @@ ${files}
                   <div class="small text-secondary mb-1">${esc(i.id)} • ${esc(i.project)} • ${esc(i.type)} • P${esc(i.priority)}</div>
                   <div class="h5 mb-0">${esc(i.title)}</div>
                 </div>
-                <div class="d-flex gap-2 no-print">
-                  <button class="btn btn-sm btn-outline-primary" type="button" data-copy="${hiddenId}_md">
-                    <i class="bi bi-clipboard me-1"></i>Copy Issue Body
+                <div class="d-flex gap-2 no-print flex-wrap">
+                  <button class="btn btn-sm btn-outline-info" type="button" data-copy="${hiddenId}_title" title="Copy title as plain text">
+                    <i class="bi bi-clipboard me-1"></i>Copy Title
+                  </button>
+                  <button class="btn btn-sm btn-outline-primary" type="button" data-copy="${hiddenId}_md" title="Copy full issue body as markdown">
+                    <i class="bi bi-clipboard me-1"></i>Copy Body
                   </button>
                   <button class="btn btn-sm btn-outline-secondary" type="button" onclick="window.print()">
                     <i class="bi bi-printer me-1"></i>Print
@@ -804,6 +807,9 @@ ${files}
               <div class="code-wrap">
                 <pre class="bg-light border rounded p-3 mb-0"><code id="${hiddenId}_md">${md}</code></pre>
               </div>
+
+              <!-- Hidden title for copy button -->
+              <span id="${hiddenId}_title" style="display: none;">${i.title}</span>
 
               <div class="small-muted mt-2">
                 Tip: You can paste this into a Git issue and then add labels for Project + Type.
@@ -938,11 +944,13 @@ ${files}
         if (!codeEl) return;
 
         const text = codeEl.textContent || "";
+        const originalHtml = btn.innerHTML;
+        
         try {
           await navigator.clipboard.writeText(text);
           btn.innerHTML = `<i class="bi bi-check2 me-1"></i>Copied`;
           setTimeout(() => {
-            btn.innerHTML = `<i class="bi bi-clipboard me-1"></i>Copy Issue Body`;
+            btn.innerHTML = originalHtml;
           }, 1200);
         } catch {
           // fallback: select text
