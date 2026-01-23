@@ -143,7 +143,8 @@
               <ul class="mb-0 small">
                 <li>Restore/build solution</li>
                 <li>Run <span class="kbd">init</span> once to create SQLite schema</li>
-                <li>Set <span class="kbd">AppSettings</span> values (SiteUrl / LibraryName / TenantId / ClientId / Secret)</li>
+                <li>Set <span class="kbd">AppSettings</span> values (SiteUrl / LibraryName / TenantId / ClientId /
+                  Secret)</li>
                 <li>Run <span class="kbd">run</span> with a test file</li>
                 <li>If something fails: open <span class="kbd">Troubleshooting.html</span></li>
               </ul>
@@ -160,7 +161,8 @@
               <div>
                 <div class="fw-semibold">Recommended workflow</div>
                 <div class="small-muted">
-                  Build → init DB → update <span class="kbd">AppSettings</span> → (optional) PowerShell site test → run GraphLib.
+                  Build → init DB → update <span class="kbd">AppSettings</span> → (optional) PowerShell site test → run
+                  GraphLib.
                 </div>
               </div>
             </div>
@@ -263,97 +265,181 @@
         <section class="col-12 col-lg-8">
           <div class="accordion" id="accordionGettingStarted">
 
-<!-- Azure App Registration – Exact Azure Locations -->
-<div class="accordion-item" id="azure-ids">
-  <h2 class="accordion-header">
-    <button class="accordion-button collapsed" type="button"
-      data-bs-toggle="collapse"
-      data-bs-target="#cAzureIds">
-      <i class="bi bi-cloud-lock me-2 text-primary"></i>
-      Azure App Registration — Exact Locations for IDs & Secrets
-    </button>
-  </h2>
+            <!-- Azure App Registration – Exact Azure Locations -->
+            <div class="accordion-item" id="azure-ids">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                  data-bs-target="#cAzureIds">
+                  <i class="bi bi-cloud-lock me-2 text-primary"></i>
+                  Azure App Registration — Exact Locations for IDs & Secrets
+                </button>
+              </h2>
 
-  <div id="cAzureIds" class="accordion-collapse collapse"
-    data-bs-parent="#accordionGettingStarted">
-    <div class="accordion-body">
+              <div id="cAzureIds" class="accordion-collapse collapse" data-bs-parent="#accordionGettingStarted">
+                <div class="accordion-body">
 
-      <p class="small mb-3">
-        This section shows the <b>exact navigation paths in Azure</b> to locate
-        the Tenant ID, Client ID, and Client Secret required by GraphLib.
-      </p>
+                  <p class="small mb-3">
+                    This section shows the <b>exact navigation paths in Azure</b> to locate
+                    the Tenant ID, Client ID, and Client Secret required by GraphLib.
+                  </p>
 
-      <h6>Step 1 — Open Azure App Registration</h6>
-      <ol class="small">
-        <li>Sign in to <b>https://portal.azure.com</b></li>
-        <li>Open the left menu</li>
-        <li>Select <b>Microsoft Entra ID</b></li>
-        <li>Click <b>App registrations</b></li>
-        <li>Select your application from the list</li>
-      </ol>
+                  <h6>Step 1 — Open Azure App Registration</h6>
+                  <ol class="small">
+                    <li>Sign in to <b>https://portal.azure.com</b></li>
+                    <li>Open the left menu</li>
+                    <li>Select <b>Microsoft Entra ID</b></li>
+                    <li>Click <b>App registrations</b></li>
+                    <li>Select your application from the list</li>
+                  </ol>
 
-      <hr />
+                  <hr />
 
-      <h6>Tenant ID &amp; Client ID</h6>
-      <p class="small mb-2">
-        Location:
-        <br />
-        <span class="kbd">Microsoft Entra ID → App registrations → Your App → Overview</span>
-      </p>
+                  <h6>Tenant ID &amp; Client ID</h6>
+                  <p class="small mb-2">
+                    Location:
+                    <br />
+                    <span class="kbd">Microsoft Entra ID → App registrations → Your App → Overview</span>
+                  </p>
 
-      <ul class="small">
-        <li>
-          <b>Directory (tenant) ID</b>
-          <br />
-          → Use this value as <span class="kbd">TenantId</span>
-        </li>
-        <li>
-          <b>Application (client) ID</b>
-          <br />
-          → Use this value as <span class="kbd">ClientId</span>
-        </li>
-      </ul>
+                  <ul class="small">
+                    <li>
+                      <b>Directory (tenant) ID</b>
+                      <br />
+                      → Use this value as <span class="kbd">TenantId</span>
+                    </li>
+                    <li>
+                      <b>Application (client) ID</b>
+                      <br />
+                      → Use this value as <span class="kbd">ClientId</span>
+                    </li>
+                  </ul>
 
-      <hr />
+                  <hr />
 
-      <h6>Client Secret</h6>
-      <p class="small mb-2">
-        Location:
-        <br />
-        <span class="kbd">
-          Microsoft Entra ID → App registrations → Your App → Certificates &amp; secrets
-        </span>
-      </p>
+                  <h6>Client Secret</h6>
+                  <p class="small mb-2">
+                    Location:
+                    <br />
+                    <span class="kbd">
+                      Microsoft Entra ID → App registrations → Your App → Certificates &amp; secrets
+                    </span>
+                  </p>
 
-      <ol class="small">
-        <li>Under <b>Client secrets</b>, click <b>New client secret</b></li>
-        <li>Enter a description</li>
-        <li>Select an expiration period</li>
-        <li>Click <b>Add</b></li>
-      </ol>
+                  <ol class="small">
+                    <li>Under <b>Client secrets</b>, click <b>New client secret</b></li>
+                    <li>Enter a description</li>
+                    <li>Select an expiration period</li>
+                    <li>Click <b>Add</b></li>
+                  </ol>
 
-      <div class="alert alert-danger small mt-2">
-        <i class="bi bi-exclamation-octagon-fill me-1"></i>
-        <b>IMPORTANT:</b>
-        Copy the <b>Value</b> column immediately.
-        <br />
-        The <b>Secret ID</b> will NOT work, and the value cannot be retrieved later.
-      </div>
+                  <div class="alert alert-danger small mt-2">
+                    <i class="bi bi-exclamation-octagon-fill me-1"></i>
+                    <b>IMPORTANT:</b>
+                    Copy the <b>Value</b> column immediately.
+                    <br />
+                    The <b>Secret ID</b> will NOT work, and the value cannot be retrieved later.
+                  </div>
 
-      <hr />
+                  <hr />
 
-      <h6>Final Mapping</h6>
-      <ul class="small mb-0">
-        <li><span class="kbd">TenantId</span> → Directory (tenant) ID</li>
-        <li><span class="kbd">ClientId</span> → Application (client) ID</li>
-        <li><span class="kbd">ClientSecret</span> → Client secret <b>Value</b></li>
-      </ul>
+                  <h6>Final Mapping</h6>
+                  <ul class="small mb-0">
+                    <li><span class="kbd">TenantId</span> → Directory (tenant) ID</li>
+                    <li><span class="kbd">ClientId</span> → Application (client) ID</li>
+                    <li><span class="kbd">ClientSecret</span> → Client secret <b>Value</b></li>
+                  </ul>
 
-    </div>
-  </div>
-</div>
+                </div>
+              </div>
+            </div>
+            <div class="accordion-item" id="azure-ids">
+              <h2 class="accordion-header">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#cAzureIds"
+                  aria-expanded="true">
+                  <i class="bi bi-cloud-lock me-2 text-primary"></i>
+                  Azure App Registration — Exact Locations for IDs &amp; Secrets
+                </button>
+              </h2>
 
-            
+              <div id="cAzureIds" class="accordion-collapse collapse show" data-bs-parent="#accordionGettingStarted"
+                style="">
+                <div class="accordion-body">
+
+                  <p class="small mb-3">
+                    This section shows the <b>exact navigation paths in Azure</b> to locate
+                    the Tenant ID, Client ID, and Client Secret required by GraphLib.
+                  </p>
+
+                  <h6>Step 1 — Open Azure App Registration</h6>
+                  <ol class="small">
+                    <li>Sign in to <b>https://portal.azure.com</b></li>
+                    <li>Open the left menu</li>
+                    <li>Select <b>Microsoft Entra ID</b></li>
+                    <li>Click <b>App registrations</b></li>
+                    <li>Select your application from the list</li>
+                  </ol>
+
+                  <hr>
+
+                  <h6>Tenant ID &amp; Client ID</h6>
+                  <p class="small mb-2">
+                    Location:
+                    <br>
+                    <span class="kbd">Microsoft Entra ID → App registrations → Your App → Overview</span>
+                  </p>
+
+                  <ul class="small">
+                    <li>
+                      <b>Directory (tenant) ID</b>
+                      <br>
+                      → Use this value as <span class="kbd">TenantId</span>
+                    </li>
+                    <li>
+                      <b>Application (client) ID</b>
+                      <br>
+                      → Use this value as <span class="kbd">ClientId</span>
+                    </li>
+                  </ul>
+
+                  <hr>
+
+                  <h6>Client Secret</h6>
+                  <p class="small mb-2">
+                    Location:
+                    <br>
+                    <span class="kbd">
+                      Microsoft Entra ID → App registrations → Your App → Certificates &amp; secrets
+                    </span>
+                  </p>
+
+                  <ol class="small">
+                    <li>Under <b>Client secrets</b>, click <b>New client secret</b></li>
+                    <li>Enter a description</li>
+                    <li>Select an expiration period</li>
+                    <li>Click <b>Add</b></li>
+                  </ol>
+
+                  <div class="alert alert-danger small mt-2">
+                    <i class="bi bi-exclamation-octagon-fill me-1"></i>
+                    <b>IMPORTANT:</b>
+                    Copy the <b>Value</b> column immediately.
+                    <br>
+                    The <b>Secret ID</b> will NOT work, and the value cannot be retrieved later.
+                  </div>
+
+                  <hr>
+
+                  <h6>Final Mapping</h6>
+                  <ul class="small mb-0">
+                    <li><span class="kbd">TenantId</span> → Directory (tenant) ID</li>
+                    <li><span class="kbd">ClientId</span> → Application (client) ID</li>
+                    <li><span class="kbd">ClientSecret</span> → Client secret <b>Value</b></li>
+                  </ul>
+
+                </div>
+              </div>
+            </div>
+
             <!-- 1) Prereqs -->
             <div class="accordion-item" id="prereq">
               <h2 class="accordion-header">
@@ -375,7 +461,8 @@
                     <div class="fw-semibold">Important</div>
                     <div class="small-muted">
                       App-only uploads require Graph <b>Application permissions</b> and <b>Admin consent granted</b>.
-                      If you hit a 401 at <span class="kbd">resolveSite</span>, open <span class="kbd">Troubleshooting.html</span>.
+                      If you hit a 401 at <span class="kbd">resolveSite</span>, open <span
+                        class="kbd">Troubleshooting.html</span>.
                     </div>
                   </div>
                 </div>
@@ -433,7 +520,8 @@ dotnet run -c Release --project .\GraphLib.Console\GraphLib.Console.csproj -- in
                   </div>
 
                   <div class="small-muted mt-2">
-                    Tip: if you want a specific DB file, add <span class="kbd">--db</span> (see “Run with explicit DB path” below).
+                    Tip: if you want a specific DB file, add <span class="kbd">--db</span> (see “Run with explicit DB
+                    path” below).
                   </div>
                 </div>
               </div>
@@ -498,13 +586,15 @@ WHERE Id = 1;</code></pre>
                     <button class="btn btn-sm btn-outline-primary copy-btn no-print" data-copy="#cmdRunBasic">
                       <i class="bi bi-clipboard me-1"></i>Copy
                     </button>
-                    <pre class="bg-light border rounded p-3 mb-0"><code id="cmdRunBasic">cd src
+                    <pre
+                      class="bg-light border rounded p-3 mb-0"><code id="cmdRunBasic">cd src
 dotnet run -c Release --project .\GraphLib.Console\GraphLib.Console.csproj -- run `
   --file "C:\source\repos\RaalnanUno\GraphLib\DocFiles\Rahsaan_Pringle_Cover_Letter_Creative_Merchandising_Lead.docx"</code></pre>
                   </div>
 
                   <div class="small-muted mt-2">
-                    If you see 401 at <span class="kbd">resolveSite</span>, it’s almost always <b>admin consent</b> or permissions.
+                    If you see 401 at <span class="kbd">resolveSite</span>, it’s almost always <b>admin consent</b> or
+                    permissions.
                     Open <span class="kbd">Troubleshooting.html</span>.
                   </div>
                 </div>
@@ -560,7 +650,8 @@ dotnet run -c Release --project .\GraphLib.Console\GraphLib.Console.csproj -- ru
                     <button class="btn btn-sm btn-outline-primary copy-btn no-print" data-copy="#cmdRunSqlScript">
                       <i class="bi bi-clipboard me-1"></i>Copy
                     </button>
-                    <pre class="bg-light border rounded p-3 mb-0"><code id="cmdRunSqlScript">.\RunBat\run-sql.bat ".\RunBat\update-settings.sql"</code></pre>
+                    <pre
+                      class="bg-light border rounded p-3 mb-0"><code id="cmdRunSqlScript">.\RunBat\run-sql.bat ".\RunBat\update-settings.sql"</code></pre>
                   </div>
 
                   <h3 class="h6 mt-3">Quick verify (select)</h3>
@@ -568,14 +659,16 @@ dotnet run -c Release --project .\GraphLib.Console\GraphLib.Console.csproj -- ru
                     <button class="btn btn-sm btn-outline-primary copy-btn no-print" data-copy="#cmdRunSqlSelect">
                       <i class="bi bi-clipboard me-1"></i>Copy
                     </button>
-                    <pre class="bg-light border rounded p-3 mb-0"><code id="cmdRunSqlSelect">.\RunBat\run-sql.bat "SELECT SiteUrl, LibraryName, TenantId, ClientId FROM AppSettings WHERE Id=1;"</code></pre>
+                    <pre
+                      class="bg-light border rounded p-3 mb-0"><code id="cmdRunSqlSelect">.\RunBat\run-sql.bat "SELECT SiteUrl, LibraryName, TenantId, ClientId FROM AppSettings WHERE Id=1;"</code></pre>
                   </div>
 
                   <div class="callout callout-warning mt-3">
                     <div class="fw-semibold">If your repo doesn’t have RunBat yet</div>
                     <div class="small-muted">
                       Keep this section anyway as a placeholder, or delete it.
-                      It’s a good “team-friendly” workflow because it’s repeatable and produces a clean success/failure signal.
+                      It’s a good “team-friendly” workflow because it’s repeatable and produces a clean success/failure
+                      signal.
                     </div>
                   </div>
                 </div>
@@ -606,7 +699,8 @@ dotnet run -c Release --project .\GraphLib.Console\GraphLib.Console.csproj -- ru
 
   <!-- Video Modals (Lightboxes) -->
   <!-- Modal: Initialize DB -->
-  <div class="modal fade video-modal" id="videoInitDb" tabindex="-1" aria-labelledby="videoInitDbLabel" aria-hidden="true">
+  <div class="modal fade video-modal" id="videoInitDb" tabindex="-1" aria-labelledby="videoInitDbLabel"
+    aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-xl">
       <div class="modal-content">
         <div class="modal-header">
@@ -619,13 +713,9 @@ dotnet run -c Release --project .\GraphLib.Console\GraphLib.Console.csproj -- ru
         <div class="modal-body">
           <div class="ratio ratio-16x9">
             <!-- Placeholder: replace src with your real embed URL -->
-            <iframe
-              id="iframeInitDb"
-              src="about:blank"
-              title="Initialize DB Video"
+            <iframe id="iframeInitDb" src="about:blank" title="Initialize DB Video"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowfullscreen
-            ></iframe>
+              allowfullscreen></iframe>
           </div>
           <div class="small-muted mt-2">
             Placeholder: set an embed URL when your video is ready.
@@ -636,7 +726,8 @@ dotnet run -c Release --project .\GraphLib.Console\GraphLib.Console.csproj -- ru
   </div>
 
   <!-- Modal: Convert a File -->
-  <div class="modal fade video-modal" id="videoConvertFile" tabindex="-1" aria-labelledby="videoConvertFileLabel" aria-hidden="true">
+  <div class="modal fade video-modal" id="videoConvertFile" tabindex="-1" aria-labelledby="videoConvertFileLabel"
+    aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-xl">
       <div class="modal-content">
         <div class="modal-header">
@@ -649,13 +740,9 @@ dotnet run -c Release --project .\GraphLib.Console\GraphLib.Console.csproj -- ru
         <div class="modal-body">
           <div class="ratio ratio-16x9">
             <!-- Placeholder: replace src with your real embed URL -->
-            <iframe
-              id="iframeConvertFile"
-              src="about:blank"
-              title="Convert a File Video"
+            <iframe id="iframeConvertFile" src="about:blank" title="Convert a File Video"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowfullscreen
-            ></iframe>
+              allowfullscreen></iframe>
           </div>
           <div class="small-muted mt-2">
             Placeholder: set an embed URL when your video is ready.
