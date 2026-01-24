@@ -1,0 +1,513 @@
+{
+  "boardId": "ngdocs-monday-kickoff-v1",
+  "title": "NGDocs — Monday Kickoff Work Items",
+  "version": "1.0.0",
+  "createdAt": "2026-01-23",
+  "notes": [
+    "This is an initial planning artifact. File paths are intentional placeholders and may change.",
+    "Non-breaking requirement: leave /docs untouched; all new work lives under /NGDocs.",
+    "Local-only: Angular SPA + json-server + Express API (mandatory for SQLite access).",
+    "No .NET web apps for NGDocs."
+  ],
+  "defaults": {
+    "rootFolder": "NGDocs",
+    "dbPaths": {
+      "debug": "src\\GraphLib.Console\\bin\\Debug\\net8.0\\Data\\GraphLib.db",
+      "release": "src\\GraphLib.Console\\bin\\Release\\net8.0\\Data\\GraphLib.db"
+    }
+  },
+  "workItems": [
+    {
+      "id": "NGD-001",
+      "project": "NGDocs",
+      "type": "User Story Template",
+      "priority": 1,
+      "title": "Repo: Add NGDocs folder scaffold (non-breaking)",
+      "summary": "Create NGDocs as a sibling folder to docs, with an initial skeleton for app/server/data and placeholder README.",
+      "tags": [
+        "ngdocs",
+        "scaffold",
+        "non-breaking"
+      ],
+      "files": [
+        "NGDocs/README.md",
+        "NGDocs/.gitignore",
+        "NGDocs/package.json",
+        "NGDocs/app/README.md",
+        "NGDocs/server/README.md",
+        "NGDocs/data/README.md"
+      ],
+      "asA": "As a Maintainer",
+      "iNeed": "a clean NGDocs scaffold beside docs",
+      "soThat": "we can start building a local-only UI without touching existing docs.",
+      "acceptance": [
+        "A new /NGDocs folder exists beside /docs.",
+        "No changes are required in /docs to build or run NGDocs.",
+        "README explains intended architecture at a high level."
+      ],
+      "notes": [
+        "Keep paths and wording aligned to the Monday prompt.",
+        "Avoid adding implementation complexity; this is structure only."
+      ]
+    },
+    {
+      "id": "NGD-002",
+      "project": "NGDocs",
+      "type": "User Story Template",
+      "priority": 1,
+      "title": "Dev UX: Add npm dev script to run Angular + json-server + Express via concurrently",
+      "summary": "Define package.json scripts so one command starts the full local toolchain.",
+      "tags": [
+        "devx",
+        "npm",
+        "concurrently",
+        "local-only"
+      ],
+      "files": [
+        "NGDocs/package.json"
+      ],
+      "asA": "As a Developer",
+      "iNeed": "one command to start the local UI and APIs",
+      "soThat": "I can run the stack consistently without manual steps.",
+      "acceptance": [
+        "npm run dev starts Angular dev server, json-server, and Express API.",
+        "Ports are documented in NGDocs/README.md.",
+        "If any process fails to start, the console output makes it obvious."
+      ],
+      "notes": [
+        "Prefer distinct ports (e.g., Angular 4200, json-server 3002, Express 3100).",
+        "Use concurrently with readable names."
+      ]
+    },
+    {
+      "id": "NGD-003",
+      "project": "NGDocs.App",
+      "type": "User Story Template",
+      "priority": 1,
+      "title": "Angular: Create SPA with Bootstrap and base layout (nav + content)",
+      "summary": "Create the Angular application under NGDocs/app with a shared layout and navigation.",
+      "tags": [
+        "angular",
+        "bootstrap",
+        "spa",
+        "layout"
+      ],
+      "files": [
+        "NGDocs/app/angular.json",
+        "NGDocs/app/package.json",
+        "NGDocs/app/src/index.html",
+        "NGDocs/app/src/styles.css",
+        "NGDocs/app/src/app/app.component.ts",
+        "NGDocs/app/src/app/app.component.html",
+        "NGDocs/app/src/app/app.routes.ts"
+      ],
+      "asA": "As a User",
+      "iNeed": "a consistent UI shell and navigation",
+      "soThat": "I can move between docs and tools without leaving the SPA.",
+      "acceptance": [
+        "Bootstrap is installed and applied to the base layout.",
+        "A top nav or side nav exists with links to Index, Getting Started, Troubleshooting, WorkItemsBoard.",
+        "SPA routes render without full page reload."
+      ],
+      "notes": [
+        "Keep it simple: Bootstrap layout, no fancy state management yet.",
+        "No DB dependence for initial pages."
+      ]
+    },
+    {
+      "id": "NGD-004",
+      "project": "NGDocs.App",
+      "type": "User Story Template",
+      "priority": 2,
+      "title": "Angular Pages: Add Index, Getting Started, Troubleshooting, WorkItemsBoard routes",
+      "summary": "Implement initial routes and placeholder page components for the four required pages.",
+      "tags": [
+        "angular",
+        "routing",
+        "pages"
+      ],
+      "files": [
+        "NGDocs/app/src/app/pages/index/index.page.ts",
+        "NGDocs/app/src/app/pages/index/index.page.html",
+        "NGDocs/app/src/app/pages/getting-started/getting-started.page.ts",
+        "NGDocs/app/src/app/pages/getting-started/getting-started.page.html",
+        "NGDocs/app/src/app/pages/troubleshooting/troubleshooting.page.ts",
+        "NGDocs/app/src/app/pages/troubleshooting/troubleshooting.page.html",
+        "NGDocs/app/src/app/pages/work-items-board/work-items-board.page.ts",
+        "NGDocs/app/src/app/pages/work-items-board/work-items-board.page.html"
+      ],
+      "asA": "As a User",
+      "iNeed": "stable pages for the documentation portal",
+      "soThat": "NGDocs is usable even before the DB features are implemented.",
+      "acceptance": [
+        "Each route loads a page with a clear heading and placeholder content.",
+        "No console errors in the browser when navigating between pages."
+      ],
+      "notes": [
+        "These pages can be content placeholders for now."
+      ]
+    },
+    {
+      "id": "NGD-005",
+      "project": "NGDocs.App",
+      "type": "User Story Template",
+      "priority": 2,
+      "title": "Docs Display: Render existing docs HTML pages inside NGDocs (display-first)",
+      "summary": "Show GettingStarted/Troubleshooting/WorkItemsBoard content from docs without altering docs.",
+      "tags": [
+        "docs",
+        "integration",
+        "non-breaking"
+      ],
+      "files": [
+        "NGDocs/app/src/app/services/docs-content.service.ts",
+        "NGDocs/app/src/app/pages/getting-started/getting-started.page.ts",
+        "NGDocs/app/src/app/pages/troubleshooting/troubleshooting.page.ts"
+      ],
+      "asA": "As a User",
+      "iNeed": "NGDocs to display the existing docs content",
+      "soThat": "we can keep docs authoritative while experimenting with a SPA shell.",
+      "acceptance": [
+        "NGDocs can display the existing docs content without requiring edits to /docs.",
+        "If docs content cannot be loaded, the UI shows a friendly fallback message."
+      ],
+      "notes": [
+        "Approach may be: copy static HTML into NGDocs assets, or fetch via local server; choose simplest local-dev method.",
+        "This work item is intentionally flexible; document the chosen approach in NGDocs/README.md."
+      ]
+    },
+    {
+      "id": "NGD-006",
+      "project": "NGDocs.Data",
+      "type": "User Story Template",
+      "priority": 1,
+      "title": "json-server: Add work items dataset and serve it locally",
+      "summary": "Create a db.json (or similar) for json-server containing WorkItems collection matching the schema used in GraphLib docs.",
+      "tags": [
+        "json-server",
+        "work-items",
+        "data"
+      ],
+      "files": [
+        "NGDocs/data/db.json",
+        "NGDocs/data/seed.workitems.json"
+      ],
+      "asA": "As a Developer",
+      "iNeed": "a local API for work items",
+      "soThat": "WorkItemsBoard can be data-driven immediately.",
+      "acceptance": [
+        "json-server runs and exposes /workItems endpoints.",
+        "At least 5 sample work items exist, including the provided example shape.",
+        "README documents the port and endpoint URLs."
+      ],
+      "notes": [
+        "Keep the schema stable and consistent with the example.",
+        "Do not implement editing in Phase 1 unless explicitly requested."
+      ]
+    },
+    {
+      "id": "NGD-007",
+      "project": "NGDocs.App",
+      "type": "User Story Template",
+      "priority": 1,
+      "title": "WorkItemsBoard UI: Display work items from json-server (read-only)",
+      "summary": "Fetch WorkItems from json-server and render a list + detail view.",
+      "tags": [
+        "angular",
+        "http",
+        "work-items",
+        "ui"
+      ],
+      "files": [
+        "NGDocs/app/src/app/models/work-item.ts",
+        "NGDocs/app/src/app/services/work-items.service.ts",
+        "NGDocs/app/src/app/pages/work-items-board/work-items-board.page.ts",
+        "NGDocs/app/src/app/pages/work-items-board/work-items-board.page.html",
+        "NGDocs/app/src/app/pages/work-items-board/work-item-detail.component.ts",
+        "NGDocs/app/src/app/pages/work-items-board/work-item-detail.component.html"
+      ],
+      "asA": "As a User",
+      "iNeed": "to see the work items board in NGDocs",
+      "soThat": "I can browse planned work without opening raw JSON files.",
+      "acceptance": [
+        "Work items load from json-server and render in a readable list.",
+        "Selecting an item shows the full details including acceptance criteria and files.",
+        "If the API is down, show a friendly error message."
+      ],
+      "notes": [
+        "Start simple: plain list + filtering by project/type/tag later.",
+        "DataTables can be deferred; don’t block progress on it."
+      ]
+    },
+    {
+      "id": "NGD-008",
+      "project": "NGDocs.Server",
+      "type": "User Story Template",
+      "priority": 1,
+      "title": "Express API: Create local-only server skeleton for SQLite access (mandatory for DB features)",
+      "summary": "Scaffold an Express server that will provide HTTP endpoints for SQLite operations. No UI changes required yet beyond status wiring.",
+      "tags": [
+        "express",
+        "sqlite",
+        "local-only",
+        "api"
+      ],
+      "files": [
+        "NGDocs/server/package.json",
+        "NGDocs/server/src/index.ts",
+        "NGDocs/server/src/config/db-paths.ts",
+        "NGDocs/server/src/routes/db.routes.ts",
+        "NGDocs/server/src/services/sqlite.service.ts"
+      ],
+      "asA": "As a Developer",
+      "iNeed": "a local Express API that can open the SQLite DB file",
+      "soThat": "the Angular SPA can browse/edit the DB (browser cannot read local files directly).",
+      "acceptance": [
+        "Express server starts on a documented port.",
+        "GET /api/db/status returns dbSelected, path, and exists=true|false based on selection.",
+        "CORS configured for local Angular dev server."
+      ],
+      "notes": [
+        "This is mandatory for DB browsing/editing; Angular cannot open filesystem DB paths.",
+        "SQLite library choice can be documented (better-sqlite3 or sqlite3)."
+      ]
+    },
+    {
+      "id": "NGD-009",
+      "project": "NGDocs.App",
+      "type": "User Story Template",
+      "priority": 1,
+      "title": "DB Selector UI: Debug/Release radio selection and always-show selected path",
+      "summary": "Add a DB selection UI element in NGDocs. The selection is explicit and the full path is always visible.",
+      "tags": [
+        "angular",
+        "db",
+        "ux",
+        "explicit-selection"
+      ],
+      "files": [
+        "NGDocs/app/src/app/components/db-selector/db-selector.component.ts",
+        "NGDocs/app/src/app/components/db-selector/db-selector.component.html",
+        "NGDocs/app/src/app/services/db-status.service.ts"
+      ],
+      "asA": "As a User",
+      "iNeed": "to explicitly choose Debug or Release DB",
+      "soThat": "there is no ambiguity about which GraphLib.db the UI is using.",
+      "acceptance": [
+        "UI provides Debug/Release selection with the exact path displayed.",
+        "Selection is stored for the session (optional: persist in localStorage).",
+        "If selected DB does not exist, UI clearly shows 'Database not found' and disables DB nav."
+      ],
+      "notes": [
+        "No auto-detection logic; user must choose.",
+        "Paths are fixed to the two known locations."
+      ]
+    },
+    {
+      "id": "NGD-010",
+      "project": "NGDocs.Server",
+      "type": "User Story Template",
+      "priority": 2,
+      "title": "Express API: List tables and browse table rows (read-only)",
+      "summary": "Provide endpoints to list tables and return paged rows for a selected table.",
+      "tags": [
+        "express",
+        "sqlite",
+        "api",
+        "read-only"
+      ],
+      "files": [
+        "NGDocs/server/src/routes/db.routes.ts",
+        "NGDocs/server/src/services/sqlite.service.ts"
+      ],
+      "asA": "As a User",
+      "iNeed": "to browse SQLite tables from the UI",
+      "soThat": "I can inspect settings, runs, events, and metrics without a separate SQLite tool.",
+      "acceptance": [
+        "GET /api/db/tables returns table names.",
+        "GET /api/db/table/:name returns paged rows and column metadata.",
+        "If DB is missing, endpoints return a clear error response."
+      ],
+      "notes": [
+        "Return column names/types if feasible to help the UI render."
+      ]
+    },
+    {
+      "id": "NGD-011",
+      "project": "NGDocs.App",
+      "type": "User Story Template",
+      "priority": 2,
+      "title": "DB Browser UI: Tables list and row viewer (read-only)",
+      "summary": "Angular UI for listing tables and showing rows for a selected table. Editing comes later.",
+      "tags": [
+        "angular",
+        "db",
+        "ui",
+        "read-only"
+      ],
+      "files": [
+        "NGDocs/app/src/app/pages/database/database.page.ts",
+        "NGDocs/app/src/app/pages/database/database.page.html",
+        "NGDocs/app/src/app/components/table-browser/table-browser.component.ts",
+        "NGDocs/app/src/app/components/table-browser/table-browser.component.html",
+        "NGDocs/app/src/app/services/db.service.ts"
+      ],
+      "asA": "As a User",
+      "iNeed": "a simple database browser",
+      "soThat": "I can view table data without leaving the NGDocs UI.",
+      "acceptance": [
+        "Tables are listed and selectable.",
+        "Rows display in a readable table with paging.",
+        "If DB is missing, the DB page remains visible but explains why browsing is disabled."
+      ],
+      "notes": [
+        "DataTables integration can be optional; start with a basic Bootstrap table."
+      ]
+    },
+    {
+      "id": "NGD-012",
+      "project": "NGDocs.Server",
+      "type": "User Story Template",
+      "priority": 3,
+      "title": "Express API: Row update endpoint (CRUD without writing SQL)",
+      "summary": "Add a primary-key update endpoint to support UI editing without SQL queries.",
+      "tags": [
+        "express",
+        "sqlite",
+        "crud",
+        "editing"
+      ],
+      "files": [
+        "NGDocs/server/src/routes/db.routes.ts",
+        "NGDocs/server/src/services/sqlite.service.ts"
+      ],
+      "asA": "As a User",
+      "iNeed": "to edit DB rows safely through the UI",
+      "soThat": "I can update AppSettings and other tables without opening SQLite tools or writing SQL.",
+      "acceptance": [
+        "POST /api/db/table/:name/update accepts pk column + pk value + changed fields.",
+        "Endpoint returns success/failure and updated row (or rowcount).",
+        "Updates are restricted to an allowlist of tables (initially AppSettings, Ref* optional)."
+      ],
+      "notes": [
+        "Define a conservative allowlist to avoid accidental corruption.",
+        "Editing EventLogs is discouraged."
+      ]
+    },
+    {
+      "id": "NGD-013",
+      "project": "NGDocs.App",
+      "type": "User Story Template",
+      "priority": 3,
+      "title": "DB Editing UI: Modal editor for allowlisted tables",
+      "summary": "Add UI editing via modal forms (preferred over inline cell editing).",
+      "tags": [
+        "angular",
+        "bootstrap",
+        "crud",
+        "modal"
+      ],
+      "files": [
+        "NGDocs/app/src/app/components/row-editor/row-editor.component.ts",
+        "NGDocs/app/src/app/components/row-editor/row-editor.component.html",
+        "NGDocs/app/src/app/services/db.service.ts"
+      ],
+      "asA": "As a User",
+      "iNeed": "a straightforward UI for editing records",
+      "soThat": "I can manage settings without writing SQL.",
+      "acceptance": [
+        "From a table view, a user can open a modal to edit a row.",
+        "Save sends update request and refreshes the row view.",
+        "UI clearly indicates which tables are editable vs read-only."
+      ],
+      "notes": [
+        "DataTables Editor is paid; avoid it. Use Bootstrap modal and basic forms."
+      ]
+    },
+    {
+      "id": "NGD-014",
+      "project": "NGDocs.App",
+      "type": "Feature Request",
+      "priority": 4,
+      "title": "Reports: Add Chart.js visualizations for extension and conversion metrics",
+      "summary": "Add a Reports page that visualizes extension counts and conversion success/failure using Chart.js.",
+      "tags": [
+        "chart.js",
+        "reports",
+        "metrics"
+      ],
+      "files": [
+        "NGDocs/app/src/app/pages/reports/reports.page.ts",
+        "NGDocs/app/src/app/pages/reports/reports.page.html",
+        "NGDocs/app/src/app/services/reports.service.ts"
+      ],
+      "asA": "As a User",
+      "iNeed": "quick visual insights into conversions and file types",
+      "soThat": "I can understand behavior without running SQL queries.",
+      "acceptance": [
+        "Charts render using Chart.js with data pulled from the Express API.",
+        "At least one chart: top source extensions (ConversionMetrics).",
+        "If DB is missing, report page explains why charts are unavailable."
+      ],
+      "notes": [
+        "Reports can start minimal and grow over time."
+      ]
+    },
+    {
+      "id": "NGD-015",
+      "project": "NGDocs.Server",
+      "type": "Feature Request",
+      "priority": 4,
+      "title": "Advanced: SQL query runner endpoint (SELECT by default)",
+      "summary": "Provide a safe SQL query endpoint for advanced users, defaulting to SELECT-only mode.",
+      "tags": [
+        "sql",
+        "advanced",
+        "express",
+        "sqlite"
+      ],
+      "files": [
+        "NGDocs/server/src/routes/sql.routes.ts",
+        "NGDocs/server/src/services/sqlite.service.ts"
+      ],
+      "asA": "As a Power User",
+      "iNeed": "an optional SQL runner for inspection",
+      "soThat": "I can debug without leaving the NGDocs UI.",
+      "acceptance": [
+        "POST /api/sql/run executes SELECT queries and returns results.",
+        "Writes are blocked unless explicitly enabled by a config toggle.",
+        "Query errors return clear messages without crashing the server."
+      ],
+      "notes": [
+        "This is optional and should be treated as advanced tooling."
+      ]
+    },
+    {
+      "id": "NGD-016",
+      "project": "NGDocs",
+      "type": "Documentation",
+      "priority": 2,
+      "title": "Docs: Add NGDocs living-manual page explaining local-only architecture and DB requirement",
+      "summary": "Add a docs page describing NGDocs purpose, local-only constraints, Debug/Release DB selection, and why Express is mandatory for SQLite access.",
+      "tags": [
+        "docs",
+        "living-manual",
+        "architecture"
+      ],
+      "files": [
+        "docs/NGDocs.html"
+      ],
+      "asA": "As a Maintainer",
+      "iNeed": "documentation explaining why NGDocs requires Express for SQLite",
+      "soThat": "nobody wastes time trying to make Angular read local DB paths directly.",
+      "acceptance": [
+        "Docs page clearly states Angular cannot read local SQLite files directly.",
+        "Docs page lists the two DB paths and the explicit selection model.",
+        "Docs page explains that the WorkItemsBoard uses json-server."
+      ],
+      "notes": [
+        "Non-breaking: do not modify existing docs pages; just add a new one."
+      ]
+    }
+  ]
+}
