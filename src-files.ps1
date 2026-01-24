@@ -1,5 +1,6 @@
 # src-files.ps1
-# Generates src-files.xml with ONLY source paths (excludes bin/ and obj/)
+# Generates src-files.xml with ONLY source paths
+# Excludes bin/, obj/, and *.md files
 
 $repoRoot = (Resolve-Path ".").Path
 $srcPath  = Join-Path $repoRoot "src"
@@ -9,7 +10,8 @@ $files =
   Get-ChildItem -Path $srcPath -Recurse -File |
   Where-Object {
     $_.FullName -notmatch "\\bin\\" -and
-    $_.FullName -notmatch "\\obj\\"
+    $_.FullName -notmatch "\\obj\\" -and
+    $_.Extension -ne ".md"
   } |
   Select-Object -ExpandProperty FullName |
   ForEach-Object { $_.Replace($repoRoot + "\", "") } |

@@ -1,4 +1,3 @@
-using System.Linq;
 using System.Net;
 using System.Text.Json;
 
@@ -22,22 +21,17 @@ public sealed class GraphSiteResolver
     /// <param name="clientRequestId">Request ID for tracking</param>
     /// <param name="ct">Cancellation token</param>
     /// <returns>Tuple of (siteId, rawJsonResponse) for later use in subsequent Graph calls</returns>
-
     public async Task<(string siteId, string rawJson)> ResolveSiteAsync(string siteUrl, string clientRequestId, CancellationToken ct)
     {
-        if (!siteUrl.Contains("://", StringComparison.Ordinal))
-            siteUrl = "https://" + siteUrl;
-
         var uri = new Uri(siteUrl);
-        
-        var host = uri.Host;
-        var path = uri.AbsolutePath.TrimEnd('/'); // e.g. /sites/SiteName
 
+        // Graph format: /sites/{hostname}:{server-relative-path}
+        var host = uri.Host;
+        var path = uri.AbsolutePath; // e.g. /sites/SiteName
         if (string.IsNullOrWhiteSpace(path) || path == "/")
             throw new ArgumentException("siteUrl must include a site path like https://tenant.sharepoint.com/sites/SiteName");
 
-        // Most reliable Graph format: /sites/{hostname}:{server-relative-path}:
-        var requestPath = $"sites/{host}:{path}:";
+        var requestPath = $"sites/{host}:{path}";
 
         using var req = new HttpRequestMessage(HttpMethod.Get, requestPath);
         var resp = await _graph.SendAsync(req, clientRequestId, ct);
@@ -45,32 +39,7 @@ public sealed class GraphSiteResolver
         var body = await GraphClient.ReadStringSafeAsync(resp, ct);
 
         if (resp.StatusCode != HttpStatusCode.OK)
-        {
-            if (resp.StatusCode == HttpStatusCode.NotFound)
-            {
-                var friendly = $"""
-Failed to resolve SharePoint site from SiteUrl.
-
-Provided SiteUrl:
-  {siteUrl}
-
-Expected format (site root only):
-  https://<tenant>.sharepoint.com/sites/<SiteName>
-
-Common mistakes:
-- Using a document library URL (e.g. /Shared Documents)
-- Using a file URL
-- Using a SharePoint start or redirect page
-
-This error occurs before any file upload or conversion.
-""";
-
-                throw new GraphRequestException(friendly, resp.StatusCode, body, resp);
-            }
-
-            // IMPORTANT: throw for all other non-OK cases too
             throw new GraphRequestException("resolveSite failed", resp.StatusCode, body, resp);
-        }
 
         using var doc = JsonDocument.Parse(body);
         var siteId = doc.RootElement.GetProperty("id").GetString();
@@ -79,8 +48,6 @@ This error occurs before any file upload or conversion.
 
         return (siteId!, body);
     }
-
-
 }
 
 /// <summary>

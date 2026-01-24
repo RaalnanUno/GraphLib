@@ -8,7 +8,7 @@ namespace GraphLib.Core.Pipeline;
 /// <summary>
 /// Orchestrates the complete file conversion workflow.
 /// This is the "heartbeat" of the application.
-///
+/// 
 /// Workflow:
 /// 1. Resolve SharePoint site URL → site ID
 /// 2. Resolve document library name → drive ID
@@ -17,7 +17,7 @@ namespace GraphLib.Core.Pipeline;
 /// 5. Convert file to PDF via Graph API
 /// 6. (Optional) Store PDF back in SharePoint
 /// 7. (Optional) Delete temporary file
-///
+/// 
 /// All operations are logged to EventLogs table (JSON payloads).
 /// Runs are tracked in Runs and FileEvents tables.
 /// </summary>
@@ -37,9 +37,6 @@ public sealed class SingleFilePipeline
     private readonly FileEventRepository _files;
     private readonly EventLogRepository _logs;
 
-    // Metrics (aggregate counts, no per-file tracking)
-    private readonly ConversionMetricsRepository _metrics;
-
     /// <summary>
     /// Initializes pipeline with all required dependencies.
     /// Uses constructor injection pattern (no runtime service discovery).
@@ -54,8 +51,7 @@ public sealed class SingleFilePipeline
         GraphCleanupService cleanup,
         RunRepository runs,
         FileEventRepository files,
-        EventLogRepository logs,
-        ConversionMetricsRepository metrics)
+        EventLogRepository logs)
     {
         _siteResolver = siteResolver;
         _driveResolver = driveResolver;
@@ -68,8 +64,6 @@ public sealed class SingleFilePipeline
         _runs = runs;
         _files = files;
         _logs = logs;
-
-        _metrics = metrics;
     }
 
     /// <summary>
@@ -77,6 +71,12 @@ public sealed class SingleFilePipeline
     /// Returns immediately with result; all operations are async.
     /// Logs all stages to database even on failure.
     /// </summary>
+    /// <param name="runId">Unique ID for tracking this execution</param>
+    /// <param name="filePath">Path to input file</param>
+    /// <param name="settings">SharePoint and auth configuration</param>
+    /// <param name="logFailuresOnly">If true, only log failures (not successes)</param>
+    /// <param name="ct">Cancellation token for async operations</param>
+    /// <returns>GraphLibRunResult with success status and metrics</returns>
     public async Task<GraphLibRunResult> RunAsync(
         string runId,
         string filePath,
@@ -96,10 +96,7 @@ public sealed class SingleFilePipeline
         if (!fi.Exists) throw new FileNotFoundException("Input file not found.", filePath);
 
         var fileName = fi.Name;
-
-        // NOTE: you currently store ext without dot in FileEvents (e.g. "docx")
         var ext = fi.Extension.TrimStart('.').ToLowerInvariant();
-
         var inputBytes = await File.ReadAllBytesAsync(fi.FullName, ct);
 
         // Record file event start
@@ -122,23 +119,14 @@ public sealed class SingleFilePipeline
             var (siteId, _) = await _siteResolver.ResolveSiteAsync(settings.SiteUrl, clientReq, ct);
             MaybeLog(logFailuresOnly, true, runId, fileEventId, LogLevel.Info, GraphStage.ResolveSite, new
             {
-                runId,
-                stage = GraphStage.ResolveSite,
-                success = true,
-                siteId,
-                file = new { path = fi.FullName, name = fileName, extension = ext, sizeBytes = inputBytes.LongLength }
+                runId, stage = GraphStage.ResolveSite, success = true, siteId, file = new { path = fi.FullName, name = fileName, extension = ext, sizeBytes = inputBytes.LongLength }
             });
 
             // STAGE 2: Resolve drive
             (driveId, _) = await _driveResolver.ResolveDriveAsync(siteId, settings.LibraryName, clientReq, ct);
             MaybeLog(logFailuresOnly, true, runId, fileEventId, LogLevel.Info, GraphStage.ResolveDrive, new
             {
-                runId,
-                stage = GraphStage.ResolveDrive,
-                success = true,
-                siteId,
-                driveId,
-                libraryName = settings.LibraryName
+                runId, stage = GraphStage.ResolveDrive, success = true, siteId, driveId, libraryName = settings.LibraryName
             });
 
             // STAGE 3: Ensure folders exist
@@ -148,11 +136,7 @@ public sealed class SingleFilePipeline
 
             MaybeLog(logFailuresOnly, true, runId, fileEventId, LogLevel.Info, GraphStage.EnsureFolder, new
             {
-                runId,
-                stage = GraphStage.EnsureFolder,
-                success = true,
-                tempFolder = settings.TempFolder,
-                pdfFolder = settings.PdfFolder
+                runId, stage = GraphStage.EnsureFolder, success = true, tempFolder = settings.TempFolder, pdfFolder = settings.PdfFolder
             });
 
             // STAGE 4: Upload file to temporary folder
@@ -167,35 +151,15 @@ public sealed class SingleFilePipeline
 
             MaybeLog(logFailuresOnly, true, runId, fileEventId, LogLevel.Info, GraphStage.Upload, new
             {
-                runId,
-                stage = GraphStage.Upload,
-                success = true,
-                driveId,
-                tempItemId,
-                conflictBehavior = settings.ConflictBehavior.ToGraphValue()
+                runId, stage = GraphStage.Upload, success = true, driveId, tempItemId, conflictBehavior = settings.ConflictBehavior.ToGraphValue()
             });
 
             // STAGE 5: Convert file to PDF (download from Graph with ?format=pdf)
-            // Metrics: ext -> pdf (aggregate counts only)
-            try
-            {
-                pdfBytes = await _convert.DownloadPdfAsync(driveId, tempItemId, clientReq, ct);
-                await _metrics.TrackAsync(ext, "pdf", success: true, ct);
-            }
-            catch
-            {
-                await _metrics.TrackAsync(ext, "pdf", success: false, ct);
-                throw;
-            }
+            pdfBytes = await _convert.DownloadPdfAsync(driveId, tempItemId, clientReq, ct);
 
             MaybeLog(logFailuresOnly, true, runId, fileEventId, LogLevel.Info, GraphStage.Convert, new
             {
-                runId,
-                stage = GraphStage.Convert,
-                success = true,
-                driveId,
-                tempItemId,
-                pdfBytes = pdfBytes.LongLength
+                runId, stage = GraphStage.Convert, success = true, driveId, tempItemId, pdfBytes = pdfBytes.LongLength
             });
 
             // STAGE 6: Store PDF (optional - only if enabled in settings)
@@ -214,13 +178,7 @@ public sealed class SingleFilePipeline
 
                 MaybeLog(logFailuresOnly, true, runId, fileEventId, LogLevel.Info, GraphStage.StorePdf, new
                 {
-                    runId,
-                    stage = GraphStage.StorePdf,
-                    success = true,
-                    driveId,
-                    pdfItemId,
-                    pdfName,
-                    pdfFolder = settings.PdfFolder
+                    runId, stage = GraphStage.StorePdf, success = true, driveId, pdfItemId, pdfName, pdfFolder = settings.PdfFolder
                 });
             }
 
@@ -231,11 +189,7 @@ public sealed class SingleFilePipeline
 
                 MaybeLog(logFailuresOnly, true, runId, fileEventId, LogLevel.Info, GraphStage.Cleanup, new
                 {
-                    runId,
-                    stage = GraphStage.Cleanup,
-                    success = true,
-                    driveId,
-                    tempItemId
+                    runId, stage = GraphStage.Cleanup, success = true, driveId, tempItemId
                 });
             }
 
@@ -291,7 +245,7 @@ public sealed class SingleFilePipeline
     private void LogFailure(string runId, long fileEventId, Exception ex, FileInfo fi, long sizeBytes)
     {
         // Try to determine which stage failed from exception message
-        string stageGuess = ex is GraphRequestException
+        string stageGuess = ex is GraphRequestException gre
             ? GuessStageFromMessage(ex.Message)
             : "unknown";
 

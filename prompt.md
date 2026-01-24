@@ -1,4 +1,15 @@
-﻿<files>
+Interesting.
+I don't see the following anywhere.
+
+```cs
+var pdfBytes = await _pdf.DownloadPdfAsync(driveId, itemId, clientRequestId, ct);
+
+```
+
+Tell me where you think it should be.
+
+```xml
+<files>
   <file path="src\GraphLib.Console\Cli\Args.cs" />
   <file path="src\GraphLib.Console\Cli\ArgsParser.cs" />
   <file path="src\GraphLib.Console\Cli\Commands.cs" />
@@ -40,3 +51,5 @@
   <file path="src\GraphLib.Core\Sql\schema.sql" />
   <file path="src\GraphLib.sln" />
 </files>
+
+```

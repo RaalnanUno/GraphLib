@@ -72,24 +72,18 @@ var runRepo = new RunRepository(dbFactory);
 var fileRepo = new FileEventRepository(dbFactory);
 var logRepo = new EventLogRepository(dbFactory);
 
-// Metrics repository (aggregate counts only)
-// If you added DbConnectionFactory.CreateFactory(), use it:
-var metricsRepo = new ConversionMetricsRepository(dbFactory.CreateFactory());
-
 // Assemble the pipeline: orchestrator for the entire workflow
-// Note: storePdf is just another upload service instance in this design.
 var pipeline = new SingleFilePipeline(
     siteResolver,
     driveResolver,
     folderSvc,
     uploadSvc,
     convertSvc,
-    uploadSvc,     // storePdf
+    uploadSvc,
     cleanupSvc,
     runRepo,
     fileRepo,
-    logRepo,
-    metricsRepo
+    logRepo
 );
 
 // Generate a unique run ID for tracking all files in this execution
