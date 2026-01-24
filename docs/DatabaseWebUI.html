@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>GraphLib — Database Web UI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="style.css" rel="stylesheet">
+</head>
+
+<body>
+  <main class="container py-4">
+
+    <h1>Database Web UI (Angular)</h1>
+
+    <p class="lead">
+      GraphLib includes an optional <strong>local-only Angular web UI</strong>
+      for inspecting and editing the SQLite database.
+      This UI is intended as a <em>living manual</em> and operational tool,
+      not a production service.
+    </p>
+
+    <hr />
+
+    <h2>What this UI is</h2>
+    <ul>
+      <li>A local Angular application</li>
+      <li>Used to browse, edit, and visualize data in <code>GraphLib.db</code></li>
+      <li>Focused on <strong>human understanding</strong>, not automation</li>
+      <li>A companion to the CLI, not a replacement</li>
+    </ul>
+
+    <h2>What this UI is <em>not</em></h2>
+    <ul>
+      <li>Not a hosted web site</li>
+      <li>Not a production admin portal</li>
+      <li>Not another .NET web app</li>
+      <li>Not required to run GraphLib</li>
+    </ul>
+
+    <div class="alert alert-info">
+      <strong>Design note:</strong>  
+      The Angular UI intentionally stays “funky.”
+      It is a developer-facing tool, not an enterprise platform.
+    </div>
+
+    <hr />
+
+    <h2>Database requirement</h2>
+
+    <p>
+      The Angular Database UI only works if a GraphLib SQLite database already exists.
+      The UI does <strong>not</strong> create or initialize databases.
+    </p>
+
+    <p>By convention, GraphLib databases usually live at one of the following paths:</p>
+
+    <pre><code>
+src\GraphLib.Console\bin\Debug\net8.0\Data\GraphLib.db
+src\GraphLib.Console\bin\Release\net8.0\Data\GraphLib.db
+    </code></pre>
+
+    <p>
+      If no database is found, the UI should clearly indicate that state and
+      disable all database-related navigation.
+    </p>
+
+    <hr />
+
+    <h2>Intended capabilities</h2>
+
+    <h3>Database navigation</h3>
+    <ul>
+      <li>List tables</li>
+      <li>Browse table contents</li>
+      <li>Filter, sort, and page through rows (DataTables)</li>
+      <li>Edit rows via a safe UI (modal-based editing preferred)</li>
+    </ul>
+
+    <h3>Editing philosophy</h3>
+    <p>
+      The UI should support CRUD operations <em>without requiring users to write SQL</em>.
+      SQL is considered an advanced capability and should be optional.
+    </p>
+
+    <ul>
+      <li>Editing via forms / modals</li>
+      <li>Primary-key based updates</li>
+      <li>No assumption that users understand SQLite schema details</li>
+    </ul>
+
+    <h3>SQL query runner (advanced)</h3>
+    <p>
+      A simple SQL query runner may be provided for power users.
+      This is primarily for inspection and debugging.
+    </p>
+
+    <ul>
+      <li>SELECT queries by default</li>
+      <li>Write queries only if explicitly enabled</li>
+      <li>Results displayed in tabular form</li>
+    </ul>
+
+    <hr />
+
+    <h2>Visualization</h2>
+
+    <p>
+      The UI may use <strong>Chart.js</strong> to visualize database data,
+      especially operational metadata.
+    </p>
+
+    <p>Examples include:</p>
+    <ul>
+      <li>File extension counts</li>
+      <li>Conversion success vs failure</li>
+      <li>Most common source → target conversions</li>
+    </ul>
+
+    <p>
+      Visualizations are exploratory and explanatory,
+      not meant for compliance dashboards.
+    </p>
+
+    <hr />
+
+    <h2>Relationship to the CLI</h2>
+
+    <p>
+      The GraphLib CLI remains the primary execution surface.
+      The Angular UI exists to:
+    </p>
+
+    <ul>
+      <li>Explain what the CLI produced</li>
+      <li>Make the database approachable</li>
+      <li>Serve as living documentation</li>
+    </ul>
+
+    <p>
+      If the UI and CLI ever disagree,
+      the CLI is considered the source of truth.
+    </p>
+
+    <hr />
+
+    <h2>Local-only by design</h2>
+
+    <p>
+      This UI is intentionally designed to run locally:
+    </p>
+
+    <ul>
+      <li>No authentication</li>
+      <li>No multi-user assumptions</li>
+      <li>No deployment pipeline</li>
+      <li>No hosting requirements</li>
+    </ul>
+
+    <p class="text-muted">
+      If it ever becomes more than that,
+      it will be treated as a separate product.
+    </p>
+
+  </main>
+</body>
+</html>
