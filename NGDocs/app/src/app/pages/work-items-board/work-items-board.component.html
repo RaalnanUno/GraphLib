@@ -1,0 +1,150 @@
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <div>
+    <h1 class="h4 mb-1"><i class="bi bi-kanban me-2"></i>Work Items Board</h1>
+    <div class="text-secondary small">Phase 1: read-only from json-server.</div>
+  </div>
+
+  <button class="btn btn-sm btn-outline-secondary" (click)="reload()">
+    <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+  </button>
+</div>
+
+<div *ngIf="loading" class="text-secondary">
+  <i class="bi bi-hourglass-split me-2"></i>Loading work items...
+</div>
+
+<div *ngIf="error" class="alert alert-danger">
+  <i class="bi bi-exclamation-triangle me-2"></i>{{ error }}
+</div>
+
+<div class="row g-3" *ngIf="!loading">
+  <div class="col-12 col-lg-5">
+    <div class="card">
+      <div class="card-header">
+        <div class="row g-2 align-items-end">
+          <div class="col-12 col-md-7">
+            <label class="form-label small text-secondary">Filter</label>
+            <input
+              class="form-control"
+              placeholder="id, title, tags, files..."
+              [(ngModel)]="q"
+              (input)="apply()"
+            />
+          </div>
+
+          <div class="col-12 col-md-5">
+            <label class="form-label small text-secondary">Sort</label>
+            <select class="form-select" [(ngModel)]="sortBy" (change)="apply()">
+              <option value="priority">Priority</option>
+              <option value="id">ID</option>
+              <option value="project">Project</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="list-group list-group-flush" style="max-height: 520px; overflow: auto;">
+        <button
+          *ngFor="let w of filtered"
+          type="button"
+          class="list-group-item list-group-item-action"
+          [class.active]="selected?.id === w.id"
+          (click)="select(w)"
+        >
+          <div class="d-flex justify-content-between align-items-start">
+            <div class="me-2">
+              <div class="fw-semibold">{{ w.id }} — {{ w.title }}</div>
+              <div class="small text-secondary">{{ w.project }} • {{ w.type }}</div>
+            </div>
+
+            <span class="badge" [ngClass]="badgeClassForPriority(w.priority)">
+              P{{ w.priority }}
+            </span>
+          </div>
+
+          <div class="small mt-2 text-secondary">
+            {{ w.summary }}
+          </div>
+
+          <div class="mt-2 d-flex flex-wrap gap-1">
+            <span *ngFor="let t of w.tags" class="badge text-bg-light border text-dark">{{ t }}</span>
+          </div>
+        </button>
+
+        <div *ngIf="filtered.length === 0" class="p-3 text-secondary small">
+          No work items match the filter.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-7">
+    <div class="card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <div>
+          <i class="bi bi-card-text me-2"></i>
+          <strong>Details</strong>
+        </div>
+        <span *ngIf="selected" class="badge text-bg-dark">{{ selected.id }}</span>
+      </div>
+
+      <div class="card-body" *ngIf="!selected">
+        <div class="text-secondary">Pick a work item from the list.</div>
+      </div>
+
+      <div class="card-body" *ngIf="selected">
+        <h2 class="h5 mb-1">{{ selected.title }}</h2>
+        <div class="text-secondary small mb-3">
+          {{ selected.project }} • {{ selected.type }} • Priority {{ selected.priority }}
+        </div>
+
+        <div class="mb-3">
+          <div class="small text-secondary mb-1">Summary</div>
+          <div>{{ selected.summary }}</div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-12 col-md-4" *ngIf="selected.asA">
+            <div class="small text-secondary">As a</div>
+            <div>{{ selected.asA }}</div>
+          </div>
+          <div class="col-12 col-md-4" *ngIf="selected.iNeed">
+            <div class="small text-secondary">I need</div>
+            <div>{{ selected.iNeed }}</div>
+          </div>
+          <div class="col-12 col-md-4" *ngIf="selected.soThat">
+            <div class="small text-secondary">So that</div>
+            <div>{{ selected.soThat }}</div>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <div class="small text-secondary mb-1">Files</div>
+          <ul class="mb-0">
+            <li *ngFor="let f of selected.files"><code>{{ f }}</code></li>
+            <li *ngIf="!selected.files.length" class="text-secondary">None</li>
+
+          </ul>
+        </div>
+
+        <div class="mb-3">
+          <div class="small text-secondary mb-1">Acceptance</div>
+          <ul class="mb-0">
+            <li *ngFor="let a of selected.acceptance">{{ a }}</li>
+            <li *ngIf="!selected.acceptance.length" class="text-secondary">None yet</li>
+
+          </ul>
+        </div>
+
+        <div>
+          <div class="small text-secondary mb-1">Notes</div>
+          <ul class="mb-0">
+            <li *ngFor="let n of selected.notes">{{ n }}</li>
+            <li *ngIf="!selected.notes.length" class="text-secondary">None</li>
+
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

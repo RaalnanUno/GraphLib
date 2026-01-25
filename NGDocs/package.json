@@ -1,0 +1,15 @@
+{
+  "name": "ngdocs",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Local-only Angular SPA + Express API + json-server for GraphLib docs + DB browsing.",
+  "scripts": {
+    "dev": "concurrently -n APP,API,DATA -c auto \"npm:dev:app\" \"npm:dev:api\" \"npm:dev:data\"",
+    "dev:app": "npm --prefix app run start",
+    "dev:api": "npm --prefix server run dev",
+    "dev:data": "npm --prefix data run dev"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
+}

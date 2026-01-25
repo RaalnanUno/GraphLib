@@ -1,0 +1,19 @@
+{
+  "workItems": [
+    {
+      "id": "GLC-001",
+      "project": "GraphLib.Console",
+      "type": "User Story Template",
+      "priority": 3,
+      "title": "CLI: Add --fileTypes allowlist override",
+      "summary": "Allow operators to pass a temporary allowlist at runtime.",
+      "tags": ["cli", "args", "settings"],
+      "files": ["src/GraphLib.Console/Cli/Args.cs"],
+      "asA": "As an Operator",
+      "iNeed": "to override allowed file extensions",
+      "soThat": "I can test new extensions safely.",
+      "acceptance": [],
+      "notes": []
+    }
+  ]
+}

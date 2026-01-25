@@ -1,0 +1,19 @@
+{
+  "name": "ngdocs-server",
+  "private": true,
+  "version": "0.1.0",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "nodemon index.js",
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "ngdocs": "file:.."
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}

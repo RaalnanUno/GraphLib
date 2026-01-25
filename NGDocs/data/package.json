@@ -1,0 +1,14 @@
+{
+  "name": "ngdocs-data",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "json-server --watch db.json --port 3002"
+  },
+  "devDependencies": {
+    "json-server": "^0.17.4"
+  },
+  "dependencies": {
+    "ngdocs": "file:.."
+  }
+}

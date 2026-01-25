@@ -1,0 +1,8 @@
+:host {
+  display: block;
+}
+
+.navbar .badge {
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}

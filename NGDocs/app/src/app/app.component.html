@@ -1,0 +1,58 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-secondary">
+  <div class="container-fluid">
+    <a class="navbar-brand d-flex align-items-center" routerLink="/">
+      <i class="bi bi-diagram-3 me-2"></i>
+      <span>NGDocs</span>
+      <span class="badge text-bg-secondary ms-2">local-only</span>
+    </a>
+
+    <button
+      class="navbar-toggler"
+      type="button"
+      data-bs-toggle="collapse"
+      data-bs-target="#nav"
+      aria-controls="nav"
+      aria-expanded="false"
+      aria-label="Toggle navigation"
+    >
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="nav">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <a class="nav-link" routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+            <i class="bi bi-house me-1"></i> Index
+          </a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" routerLink="/getting-started" routerLinkActive="active">
+            <i class="bi bi-rocket-takeoff me-1"></i> Getting Started
+          </a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" routerLink="/troubleshooting" routerLinkActive="active">
+            <i class="bi bi-wrench-adjustable-circle me-1"></i> Troubleshooting
+          </a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" routerLink="/work-items-board" routerLinkActive="active">
+            <i class="bi bi-kanban me-1"></i> Work Items Board
+          </a>
+        </li>
+      </ul>
+
+      <div class="d-flex align-items-center text-secondary small">
+        <span class="me-2">GraphLib companion</span>
+        <i class="bi bi-terminal"></i>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<main class="container-fluid py-3">
+  <router-outlet></router-outlet>
+</main>
