@@ -1,127 +1,344 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-     <meta charset="UTF-8">
-     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-     <!-- CSS files -->
-     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.2/css/bootstrap.min.css">
-     <!-- Bootstrap JQurery -->
-     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-     <!-- Popper JS -->
-     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/2.4.4/umd/popper.min.js"></script>
-     <title>DataTables with Random Values</title>
-     <!-- CSS files -->
-     <style>
-         /* Set the width and height of the table */
-         .table {
-             width: 100%;
-             margin-bottom: 2rem;
-         }
-         
-         /* Customize the table cells */
-         .table > tbody > tr > td {
-             padding: 1.5rem;
-             border-top: none;
-             text-align: center;
-             min-width: 10rem;
-         }
-         
-         /* Set a custom background color for the second and third columns */
-         .table > tbody > tr:nth-of-type(2n+1) > td {
-             background-color: #f5f5f5;
-         }
-         
-         /* Customize the table rows based on random values (numbers, dates, and strings) */
-         .table > tbody > tr.random-value-0 {
-             background-color: #ffffffc9;
-         }
-         
-         .table > tbody > tr.random-value-1 {
-             background-color: #f2f2f2e4;
-         }
-         
-         /* Customize the table rows based on random dates */
-         .table > tbody > tr.random-date-0 {
-             background-color: #ffffffd9;
-         }
-         
-         .table > tbody > tr.random-date-1 {
-             background-color: #f2f2f2e4;
-         }
-         
-         /* Customize the table rows based on random strings */
-         .table > tbody > tr.random-string-0 {
-             background-color: #ffffffb9;
-         }
-         
-         .table > tbody > tr.random-string-1 {
-             background-color: #f2f2f2e4;
-         }
-     </style>
-</head>
-<body>
-    <h3 class="text-center">Random Values and Dates Based on Your Choice</h3>
-    <!-- Create a button to populate the database with new records -->
-    <button id="populateDatabaseBtn" class="btn btn-primary mt-4">Populate Database</button>
-    
-    <!-- Initialize variables for random values -->
-    <script type="text/javascript">
-        var randomValue0 = Popper.randomNumber(1, 5); // Generate a random integer between 1 and 5 inclusive
-        
-        /* Customize the text-alignment of the 'Random Value' column based on random value */
-        $('.table tr:nth-of-type(2)').css('text-align', 'center');
-    </script>
-    
-    <!-- Initialize variables for random dates -->
-    <script type="text/javascript">
-        var randomDate0 = Popper.randomString(1, 3); // Generate a random string between 1 and 3 characters long (inclusive)
-        
-        /* Customize the text-alignment of the 'Random Date' column based on random value */
-        $('.table tr:nth-of-type(2)').css('text-align', 'center');
-    </script>
-    
-    <!-- Initialize variables for random strings -->
-    <script type="text/javascript">
-        var randomString0 = Popper.randomString(); // Generate a random string
-        
-        /* Customize the text-alignment of the 'Random String' column based on random value */
-        $('.table tr:nth-of-type(2)').css('text-align', 'center');
-    </script>
-    
-    <!-- Create a DataTable using AJAX and Random Values -->
-    <table id="myTable" class="table">
-        <thead>
-            <tr>
-                <th scope="col">ID</th>
-                <th scope="col">Value</th>
-                <th scope="col">Date</th>
-                <th scope="col">String</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-    
-    <!-- Create a DataTable using AJAX and Random Dates -->
-    <table id="randomDates" class="table">
-        <thead>
-            <tr>
-                <th scope="col">Date</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-    
-    <!-- Create a DataTable using AJAX and Random Strings -->
-    <table id="randomStrings" class="table">
-        <thead>
-            <tr>
-                <th scope="col">String</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-    
-    <!-- Call the AJAX function to populate the tables with new records -->
-    <script src="populateDatabase.js"></script>
-</body>
-</html>
+/* app.js
+   - json-server collection: /supervisory-info-by-casemgr
+   - DataTables view + inline edit (PATCH)
+   - Populate DB with random records (POST)
+*/
+
+(function () {
+  // ----------------------------
+  // Config
+  // ----------------------------
+  const API_BASE = "http://localhost:3000";
+  const COLLECTION = "supervisory-info-by-casemgr";
+  const ENDPOINT = `${API_BASE}/${COLLECTION}`;
+
+  // How many records to generate when clicking Populate
+  const DEFAULT_GENERATE_COUNT = 15;
+
+  // Columns in your model (in the order you want displayed)
+  const COLS = [
+    { key: "id", editable: false, title: "id" }, // json-server likes an "id" field
+    { key: "CASE_MGR_NTWK_ID", editable: true, title: "CASE_MGR_NTWK_ID" },
+    { key: "CASE_MGR_FST_NME", editable: true, title: "CASE_MGR_FST_NME" },
+    { key: "CASE_MGR_LST_NME", editable: true, title: "CASE_MGR_LST_NME" },
+    { key: "CASE_MGR_MID_NME", editable: true, title: "CASE_MGR_MID_NME" },
+    { key: "ORG_UNIQ_NUM", editable: true, title: "ORG_UNIQ_NUM" },
+    { key: "INST_OCC_CHTR_NUM", editable: true, title: "INST_OCC_CHTR_NUM" },
+    { key: "CASE_VRSN_RND_DTE", editable: true, title: "CASE_VRSN_RND_DTE" }, // MM/DD/YYYY string
+    { key: "CASE_SPVR_REGN_CDE", editable: true, title: "CASE_SPVR_REGN_CDE" }
+  ];
+
+  // ----------------------------
+  // Utilities
+  // ----------------------------
+  function pad2(n) {
+    return String(n).padStart(2, "0");
+  }
+
+  function formatDateMMDDYYYY(d) {
+    const mm = pad2(d.getMonth() + 1);
+    const dd = pad2(d.getDate());
+    const yyyy = d.getFullYear();
+    return `${mm}/${dd}/${yyyy}`;
+  }
+
+  function randomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  // Pronounceable-ish string: alternating consonant/vowel
+  function pronounceable(len) {
+    const vowels = "aeiou";
+    const consonants = "bcdfghjklmnpqrstvwxyz";
+    let s = "";
+    for (let i = 0; i < len; i++) {
+      const pool = i % 2 === 0 ? consonants : vowels;
+      s += pool.charAt(randomInt(0, pool.length - 1));
+    }
+    // capitalize first letter for name-like values
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
+  // Uppercase code-like value (still pronounceable-ish)
+  function pronounceableCode(len) {
+    return pronounceable(len).toUpperCase();
+  }
+
+  function randomDateThisYear() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const start = new Date(year, 0, 1).getTime();
+    const end = new Date(year, 11, 31).getTime();
+    const t = randomInt(start, end);
+    return new Date(t);
+  }
+
+  function toTypedValue(colKey, raw) {
+    // Convert strings back to numbers where appropriate
+    if (colKey === "ORG_UNIQ_NUM" || colKey === "INST_OCC_CHTR_NUM") {
+      const n = Number(raw);
+      return Number.isFinite(n) ? n : 0;
+    }
+    return raw;
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  // ----------------------------
+  // Data generation
+  // ----------------------------
+  function makeRandomRecord() {
+    return {
+      // id is optional; json-server will auto-generate if omitted.
+      // If you want your own IDs, you can set it here.
+      CASE_MGR_NTWK_ID: pronounceableCode(8),
+      CASE_MGR_FST_NME: pronounceable(randomInt(4, 8)),
+      CASE_MGR_LST_NME: pronounceable(randomInt(5, 10)),
+      CASE_MGR_MID_NME: pronounceable(randomInt(3, 7)),
+      ORG_UNIQ_NUM: randomInt(1, 999999),
+      INST_OCC_CHTR_NUM: randomInt(1, 999999),
+      CASE_VRSN_RND_DTE: formatDateMMDDYYYY(randomDateThisYear()),
+      CASE_SPVR_REGN_CDE: pronounceableCode(randomInt(3, 5))
+    };
+  }
+
+  async function postRecord(rec) {
+    const res = await fetch(ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(rec)
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      throw new Error(`POST failed (${res.status}): ${txt}`);
+    }
+    return res.json();
+  }
+
+  async function patchRecord(id, patch) {
+    const res = await fetch(`${ENDPOINT}/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch)
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      throw new Error(`PATCH failed (${res.status}): ${txt}`);
+    }
+    return res.json();
+  }
+
+  async function getAll() {
+    const res = await fetch(ENDPOINT);
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      throw new Error(`GET failed (${res.status}): ${txt}`);
+    }
+    return res.json();
+  }
+
+  // ----------------------------
+  // UI helpers
+  // ----------------------------
+  function ensureDeps() {
+    // DataTables requires its scripts/styles; if missing, fail loudly.
+    if (!window.jQuery) throw new Error("jQuery is required but not loaded.");
+    if (!$.fn.DataTable) throw new Error("DataTables is required but not loaded.");
+  }
+
+  function setStatus(msg, type) {
+    // Adds a lightweight status area above the table if not present.
+    let $box = $("#statusBox");
+    if ($box.length === 0) {
+      $("#populateDatabaseBtn").after(
+        `<div id="statusBox" class="mt-3 alert" role="alert" style="display:none;"></div>`
+      );
+      $box = $("#statusBox");
+    }
+
+    if (!msg) {
+      $box.hide();
+      return;
+    }
+
+    const cls =
+      type === "success"
+        ? "alert alert-success"
+        : type === "warning"
+        ? "alert alert-warning"
+        : type === "danger"
+        ? "alert alert-danger"
+        : "alert alert-info";
+
+    $box.attr("class", `mt-3 ${cls}`).html(escapeHtml(msg)).show();
+  }
+
+  function buildTableHeader() {
+    const $theadRow = $("#myTable thead tr");
+    $theadRow.empty();
+    for (const c of COLS) {
+      $theadRow.append(`<th>${escapeHtml(c.title)}</th>`);
+    }
+  }
+
+  function mapRowToArray(rowObj) {
+    return COLS.map((c) => rowObj[c.key]);
+  }
+
+  // ----------------------------
+  // DataTable setup
+  // ----------------------------
+  let dt = null;
+
+  async function loadAndRender() {
+    setStatus("Loading records...", "info");
+
+    const data = await getAll();
+
+    // Build table header to match COLS
+    buildTableHeader();
+
+    // If DataTable already exists, just replace data
+    if (dt) {
+      dt.clear();
+      dt.rows.add(data.map(mapRowToArray));
+      dt.draw(false);
+      setStatus(`Loaded ${data.length} record(s). Click a cell to edit.`, "success");
+      return;
+    }
+
+    // Init DataTable first time
+    dt = $("#myTable").DataTable({
+      data: data.map(mapRowToArray),
+      columns: COLS.map((c) => ({ title: c.title })),
+      pageLength: 10,
+      lengthMenu: [10, 25, 50, 100],
+      responsive: true
+    });
+
+    // Inline editing handler (click-to-edit)
+    $("#myTable tbody").on("click", "td", function () {
+      const cell = dt.cell(this);
+      const idx = cell.index();
+      if (!idx) return;
+
+      const colDef = COLS[idx.column];
+      if (!colDef.editable) return;
+
+      // Current row data as array; id is in column 0 by our schema
+      const rowArr = dt.row(idx.row).data();
+      const id = rowArr[0];
+      if (id === undefined || id === null) {
+        setStatus("Cannot edit a row without an 'id' field. Ensure json-server returns id.", "danger");
+        return;
+      }
+
+      const original = cell.data() ?? "";
+      const $td = $(cell.node());
+
+      // prevent double-edit
+      if ($td.find("input").length) return;
+
+      const inputType = colDef.key === "CASE_VRSN_RND_DTE" ? "text" : "text";
+      const $input = $(
+        `<input type="${inputType}" class="form-control form-control-sm" value="${escapeHtml(
+          original
+        )}">`
+      );
+
+      $td.empty().append($input);
+      $input.trigger("focus").select();
+
+      const commit = async () => {
+        const newValRaw = $input.val();
+        const newVal = toTypedValue(colDef.key, newValRaw);
+
+        // restore cell immediately (optimistic UI)
+        cell.data(newVal).draw(false);
+
+        // If no change, skip PATCH
+        if (String(newVal) === String(original)) return;
+
+        try {
+          await patchRecord(id, { [colDef.key]: newVal });
+          setStatus(`Saved ${colDef.key} for id=${id}`, "success");
+        } catch (e) {
+          // revert on failure
+          cell.data(original).draw(false);
+          setStatus(e.message || "Save failed", "danger");
+        }
+      };
+
+      $input.on("keydown", function (e) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          commit();
+        }
+        if (e.key === "Escape") {
+          // cancel
+          cell.data(original).draw(false);
+        }
+      });
+
+      $input.on("blur", function () {
+        commit();
+      });
+    });
+
+    setStatus(`Loaded ${data.length} record(s). Click a cell to edit.`, "success");
+  }
+
+  // ----------------------------
+  // Populate DB button
+  // ----------------------------
+  async function populateDatabase(count) {
+    setStatus(`Creating ${count} new record(s)...`, "info");
+
+    // Create sequentially (simpler, easier error reporting).
+    // If you want faster, you can Promise.all, but sequential is safer for starters.
+    let created = 0;
+
+    for (let i = 0; i < count; i++) {
+      const rec = makeRandomRecord();
+      await postRecord(rec);
+      created++;
+    }
+
+    setStatus(`Created ${created} record(s). Reloading...`, "success");
+    await loadAndRender();
+  }
+
+  // ----------------------------
+  // Boot
+  // ----------------------------
+  $(async function () {
+    try {
+      ensureDeps();
+
+      // Wire up populate button
+      $("#populateDatabaseBtn").on("click", async function () {
+        $(this).prop("disabled", true);
+        try {
+          await populateDatabase(DEFAULT_GENERATE_COUNT);
+        } catch (e) {
+          setStatus(e.message || "Populate failed", "danger");
+        } finally {
+          $(this).prop("disabled", false);
+        }
+      });
+
+      // Initial render
+      await loadAndRender();
+    } catch (e) {
+      console.error(e);
+      setStatus(e.message || "Initialization failed", "danger");
+    }
+  });
+})();
