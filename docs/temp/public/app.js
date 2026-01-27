@@ -11,7 +11,8 @@
 const API_BASE = "http://127.0.0.1:60375";
 const API_PREFIX = "/api";
 const COLLECTION = "supervisory-info-by-casemgr";
-const ENDPOINT = `${API_BASE}${API_PREFIX}/${COLLECTION}`;
+const ENDPOINT = `${API_PREFIX}/${COLLECTION}`;
+
 
 
   // How many records to generate when clicking Populate

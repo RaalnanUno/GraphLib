@@ -1,6 +1,5 @@
 const path = require("path");
 const express = require("express");
-const cors = require("cors");
 const jsonServer = require("json-server");
 
 const HOST = "127.0.0.1";
@@ -8,10 +7,7 @@ const PORT = 60375;
 
 const app = express();
 
-// Enable CORS (safe for local dev)
-app.use(cors());
-
-// Serve static files from /public (temp.html, app.js)
+// Serve static UI from /public
 app.use(express.static(path.join(__dirname, "public")));
 
 // json-server setup for db.json
@@ -21,7 +17,7 @@ const middlewares = jsonServer.defaults();
 app.use(middlewares);
 app.use(jsonServer.bodyParser);
 
-// Mount db.json routes under /api
+// Mount db.json routes under /api (SAME ORIGIN as the UI)
 app.use("/api", router);
 
 // Default route
