@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+     <meta charset="UTF-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+     <!-- CSS files -->
+     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.2/css/bootstrap.min.css">
+     <!-- Bootstrap JQurery -->
+     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+     <!-- Popper JS -->
+     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/2.4.4/umd/popper.min.js"></script>
+     <title>DataTables with Random Values</title>
+     <!-- CSS files -->
+     <style>
+         /* Set the width and height of the table */
+         .table {
+             width: 100%;
+             margin-bottom: 2rem;
+         }
+         
+         /* Customize the table cells */
+         .table > tbody > tr > td {
+             padding: 1.5rem;
+             border-top: none;
+             text-align: center;
+             min-width: 10rem;
+         }
+         
+         /* Set a custom background color for the second and third columns */
+         .table > tbody > tr:nth-of-type(2n+1) > td {
+             background-color: #f5f5f5;
+         }
+         
+         /* Customize the table rows based on random values (numbers, dates, and strings) */
+         .table > tbody > tr.random-value-0 {
+             background-color: #ffffffc9;
+         }
+         
+         .table > tbody > tr.random-value-1 {
+             background-color: #f2f2f2e4;
+         }
+         
+         /* Customize the table rows based on random dates */
+         .table > tbody > tr.random-date-0 {
+             background-color: #ffffffd9;
+         }
+         
+         .table > tbody > tr.random-date-1 {
+             background-color: #f2f2f2e4;
+         }
+         
+         /* Customize the table rows based on random strings */
+         .table > tbody > tr.random-string-0 {
+             background-color: #ffffffb9;
+         }
+         
+         .table > tbody > tr.random-string-1 {
+             background-color: #f2f2f2e4;
+         }
+     </style>
+</head>
+<body>
+    <h3 class="text-center">Random Values and Dates Based on Your Choice</h3>
+    <!-- Create a button to populate the database with new records -->
+    <button id="populateDatabaseBtn" class="btn btn-primary mt-4">Populate Database</button>
+    
+    <!-- Initialize variables for random values -->
+    <script type="text/javascript">
+        var randomValue0 = Popper.randomNumber(1, 5); // Generate a random integer between 1 and 5 inclusive
+        
+        /* Customize the text-alignment of the 'Random Value' column based on random value */
+        $('.table tr:nth-of-type(2)').css('text-align', 'center');
+    </script>
+    
+    <!-- Initialize variables for random dates -->
+    <script type="text/javascript">
+        var randomDate0 = Popper.randomString(1, 3); // Generate a random string between 1 and 3 characters long (inclusive)
+        
+        /* Customize the text-alignment of the 'Random Date' column based on random value */
+        $('.table tr:nth-of-type(2)').css('text-align', 'center');
+    </script>
+    
+    <!-- Initialize variables for random strings -->
+    <script type="text/javascript">
+        var randomString0 = Popper.randomString(); // Generate a random string
+        
+        /* Customize the text-alignment of the 'Random String' column based on random value */
+        $('.table tr:nth-of-type(2)').css('text-align', 'center');
+    </script>
+    
+    <!-- Create a DataTable using AJAX and Random Values -->
+    <table id="myTable" class="table">
+        <thead>
+            <tr>
+                <th scope="col">ID</th>
+                <th scope="col">Value</th>
+                <th scope="col">Date</th>
+                <th scope="col">String</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    
+    <!-- Create a DataTable using AJAX and Random Dates -->
+    <table id="randomDates" class="table">
+        <thead>
+            <tr>
+                <th scope="col">Date</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    
+    <!-- Create a DataTable using AJAX and Random Strings -->
+    <table id="randomStrings" class="table">
+        <thead>
+            <tr>
+                <th scope="col">String</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    
+    <!-- Call the AJAX function to populate the tables with new records -->
+    <script src="populateDatabase.js"></script>
+</body>
+</html>
