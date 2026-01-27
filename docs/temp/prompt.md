@@ -1,11 +1,9 @@
-app.MapGet("/api/{collection}", async (HttpRequest req, string collection) =>
+app.MapGet("/api/{collection}", async (string collection, string? caseManagerId) =>
 {
     if (!string.Equals(collection, collectionName, StringComparison.OrdinalIgnoreCase))
     {
         return Results.NotFound(new { error = "Unknown collection" });
     }
-
-    var caseManagerId = req.Query["caseManagerId"].ToString();
 
     await gate.WaitAsync();
     try
@@ -13,13 +11,11 @@ app.MapGet("/api/{collection}", async (HttpRequest req, string collection) =>
         var db = await LoadDbAsync();
         var arr = (JsonArray)db[collectionName]!;
 
-        // No filter → return all records
         if (string.IsNullOrWhiteSpace(caseManagerId))
         {
             return Results.Ok(arr);
         }
 
-        // Filter by CASE_MGR_NTWK_ID, return first match
         foreach (var item in arr)
         {
             if (item is not JsonObject obj)
@@ -47,11 +43,9 @@ app.MapGet("/api/{collection}", async (HttpRequest req, string collection) =>
                 continue;
             }
 
-            // First match found
             return Results.Ok(obj);
         }
 
-        // No match found
         return Results.NotFound(new
         {
             error = $"No record found for caseManagerId='{caseManagerId}'"
