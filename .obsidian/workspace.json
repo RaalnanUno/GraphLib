@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "prompt.md",
-                "mode": "preview",
+                "file": "docs/GraphLib — Getting Started + Troubleshootng.md",
+                "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "prompt"
+              "title": "GraphLib — Getting Started + Troubleshootng"
             }
           }
         ]

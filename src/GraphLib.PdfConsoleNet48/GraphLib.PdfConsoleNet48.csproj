@@ -1,0 +1,59 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+
+    <!-- =========================================================
+         GraphLib settings (edit these)
+         NOTE: Do NOT commit real secrets. Use placeholders.
+         You can override at build time:
+         msbuild /p:TenantId=... /p:ClientId=... /p:ClientSecret=...
+         ========================================================= -->
+    <TenantId>YOUR-TENANT-ID</TenantId>
+    <ClientId>YOUR-CLIENT-ID</ClientId>
+    <ClientSecret>YOUR-CLIENT-SECRET</ClientSecret>
+
+    <SiteUrl>https://contoso.sharepoint.com/sites/MySite</SiteUrl>
+    <LibraryName>Documents</LibraryName>
+    <TempFolder>_graphlib-temp</TempFolder>
+    <ConflictBehavior>replace</ConflictBehavior>
+
+    <!-- Optional: SQLite silent error logging -->
+    <EnableSqliteLogging>false</EnableSqliteLogging>
+    <SqliteDbPath></SqliteDbPath> <!-- blank => LocalAppData default -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Identity.Client" Version="4.61.3" />
+    <!-- Optional: Only needed if EnableSqliteLogging=true AND you uncomment the logger code -->
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.6" />
+  </ItemGroup>
+
+  <!-- Write MSBuild properties into a runtime-readable file -->
+  <Target Name="WriteGraphLibSettings" BeforeTargets="BeforeBuild">
+    <PropertyGroup>
+      <_GraphLibSettingsFile>$(IntermediateOutputPath)graphlib.settings.props.txt</_GraphLibSettingsFile>
+    </PropertyGroup>
+
+    <WriteLinesToFile File="$(_GraphLibSettingsFile)" Overwrite="true"
+                      Lines="TenantId=$(TenantId)
+ClientId=$(ClientId)
+ClientSecret=$(ClientSecret)
+SiteUrl=$(SiteUrl)
+LibraryName=$(LibraryName)
+TempFolder=$(TempFolder)
+ConflictBehavior=$(ConflictBehavior)
+EnableSqliteLogging=$(EnableSqliteLogging)
+SqliteDbPath=$(SqliteDbPath)" />
+
+    <ItemGroup>
+      <None Include="$(_GraphLibSettingsFile)">
+        <Link>graphlib.settings.props.txt</Link>
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+  </Target>
+
+</Project>
