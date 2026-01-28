@@ -29,6 +29,7 @@ yarn-error.log*
 
 /DocFiles/
 /.vs/
+/.vscode/
 /src/GraphLib.Core/bin/
 /src/GraphLib.Console/bin/
 /src/GraphLib.Core/obj/

@@ -9,6 +9,7 @@ $files =
   Get-ChildItem -Path $srcPath -Recurse -File |
   Where-Object {
     $_.FullName -notmatch "\\bin\\" -and
+    $_.FullName -notmatch "\\.vs\\" -and
     $_.FullName -notmatch "\\obj\\"
   } |
   Select-Object -ExpandProperty FullName |
