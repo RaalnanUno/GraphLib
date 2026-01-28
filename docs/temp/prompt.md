@@ -1,3 +1,172 @@
+Perfect — we’ll **inline this cleanly as a method** you can drop into an existing class, with **no extra client class needed** and minimal ceremony.
+
+I’ll assume:
+
+* Your existing class can be `async`
+* You’re fine with creating / reusing an `HttpClient` internally
+* You want **one method** that returns both:
+
+  * the **raw JSON** of the first match
+  * the **typed object**
+
+---
+
+## 1️⃣ Method signature (simple + explicit)
+
+```csharp
+public async Task<CaseManagerLookupResult> GetCaseManagerByCertAsync(
+    string environment,
+    string certNumber,
+    CancellationToken cancellationToken = default)
+```
+
+---
+
+## 2️⃣ Drop-in method implementation
+
+```csharp
+using System;
+using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
+
+public async Task<CaseManagerLookupResult> GetCaseManagerByCertAsync(
+    string environment,
+    string certNumber,
+    CancellationToken cancellationToken = default)
+{
+    if (string.IsNullOrWhiteSpace(environment))
+        throw new ArgumentException("Environment is required.", nameof(environment));
+
+    if (string.IsNullOrWhiteSpace(certNumber))
+        throw new ArgumentException("CertNumber is required.", nameof(certNumber));
+
+    environment = environment.Trim().ToUpperInvariant();
+
+    using var http = new HttpClient();
+
+    string requestUrl;
+
+    switch (environment)
+    {
+        case "LOCAL":
+        {
+            // json-server example
+            var baseUrl = "http://localhost:3000/CaseManagers";
+            requestUrl = $"{baseUrl}?certNumber={Uri.EscapeDataString(certNumber)}";
+            break;
+        }
+
+        case "PROD":
+        {
+            var apiConfig = Environment.GetEnvironmentVariable("ApiConfig");
+            if (string.IsNullOrWhiteSpace(apiConfig))
+                throw new InvalidOperationException("Missing environment variable: ApiConfig");
+
+            string[] configBlocks = apiConfig
+                .Split(',')
+                .Select(x => x.Trim())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .ToArray();
+
+            if (configBlocks.Length < 3)
+                throw new InvalidOperationException(
+                    "ApiConfig must contain: apiPath, clientId, clientSecret");
+
+            var apiPath = configBlocks[0];
+            var clientId = configBlocks[1];
+            var clientSecret = configBlocks[2];
+
+            requestUrl = $"{apiPath}?certNumber={Uri.EscapeDataString(certNumber)}";
+
+            // Header-based auth (adjust names if needed)
+            http.DefaultRequestHeaders.Add("X-Client-Id", clientId);
+            http.DefaultRequestHeaders.Add("X-Client-Secret", clientSecret);
+
+            break;
+        }
+
+        default:
+            throw new ArgumentOutOfRangeException(
+                nameof(environment),
+                environment,
+                "Environment must be LOCAL or PROD.");
+    }
+
+    using var request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
+    request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+    using var response = await http.SendAsync(
+        request,
+        HttpCompletionOption.ResponseHeadersRead,
+        cancellationToken);
+
+    response.EnsureSuccessStatusCode();
+
+    var json = await response.Content.ReadAsStringAsync(cancellationToken);
+
+    var options = new JsonSerializerOptions
+    {
+        PropertyNameCaseInsensitive = false
+    };
+
+    // json-server returns arrays for filtered queries
+    var records = JsonSerializer.Deserialize<CaseManagerRecord[]>(json, options);
+    var first = records?.FirstOrDefault();
+
+    return new CaseManagerLookupResult
+    {
+        RawJson = first == null
+            ? null
+            : JsonSerializer.Serialize(first, options),
+
+        Record = first
+    };
+}
+```
+
+---
+
+## 3️⃣ Usage (inside your existing class)
+
+```csharp
+var result = await GetCaseManagerByCertAsync("LOCAL", "12345");
+
+Console.WriteLine(result.RawJson);
+Console.WriteLine(result.Record?.CaseMgrFstNme);
+```
+
+---
+
+## 4️⃣ Why this fits well in your GraphLib / tooling style
+
+* ✅ **Single responsibility**: “lookup case manager by cert”
+* ✅ No new service abstractions unless you want them later
+* ✅ Safe defaults (`EnsureSuccessStatusCode`, input validation)
+* ✅ Works cleanly with **json-server** *and* production APIs
+* ✅ Easy to refactor later into:
+
+  * injected `HttpClient`
+  * retry logic
+  * structured logging
+  * Polly / resilience policies
+
+---
+
+### Next logical upgrades (optional, but very *you*):
+
+* Add `ILogger` tracing around environment selection
+* Cache PROD lookups in SQLite (you already have the patterns)
+* Promote `ApiConfig` parsing into a strongly typed config object
+
+If you want, I can refactor this **into your existing GraphLib-style class layout** (namespaces, logging, config objects) so it looks like it always belonged there.
+
+
+---
+
 Below is a clean, drop-in **C# model + query service** that does exactly what you described:
 
 * Inputs: `environment` (string), `certNumber` (string)
