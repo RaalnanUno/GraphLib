@@ -30,6 +30,7 @@ yarn-error.log*
 /DocFiles/
 /.vs/
 /.vscode/
+/.obsidian/
 /src/GraphLib.Core/bin/
 /src/GraphLib.Console/bin/
 /src/GraphLib.Core/obj/
