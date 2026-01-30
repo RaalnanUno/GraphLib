@@ -1,11 +1,20 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json;
+using System.Web.Script.Serialization;
+
 
 public sealed class LogRecord
 {
     private readonly List<LogRecordData> _records = new();
+
+    public enum LogGroupBy
+    {
+        None,
+        Class,
+        Method
+    }
+
 
     public void Add(
         int lineId,
@@ -46,10 +55,9 @@ public sealed class LogRecord
                 break;
         }
 
-        return JsonSerializer.Serialize(output, new JsonSerializerOptions
-        {
-            WriteIndented = true
-        });
+        var serializer = new JavaScriptSerializer();
+        return serializer.Serialize(output);
+
     }
 
     private sealed class LogRecordData
