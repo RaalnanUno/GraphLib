@@ -130,7 +130,7 @@ If you paste the output of just these lines (redact IDs if you want):
 
 
 ---
-
+```ps1
 function Decode-JwtPayload {
   param([string]$Jwt)
 
@@ -151,3 +151,4 @@ $payload = Decode-JwtPayload $accessToken
 "appid = $($payload.appid)"
 "roles ="
 $payload.roles
+```
