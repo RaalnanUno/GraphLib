@@ -1,230 +1,101 @@
-Yes — you can prove this **locally** by pulling an app-only token and inspecting the JWT **claims**. The key thing you’re looking for is the **`roles`** claim (application permissions). If `roles` is missing (or doesn’t include a Sites permission), that explains the 401 at `resolve_site`.
+![[Pasted image 20260203153424.png]]
 
-Below are two practical options: **PowerShell-only** (no extra tools) and **Azure CLI**.
-
----
-
-## Option A — PowerShell (recommended, zero dependencies)
-
-### 1) Get an app-only access token (client credentials)
-
-```powershell
-$tenantId = "YOUR_TENANT_GUID"
-$clientId = "YOUR_APP_GUID"
-$clientSecret = "YOUR_SECRET_VALUE"  # don't commit this anywhere
-
-$body = @{
-  client_id     = $clientId
-  client_secret = $clientSecret
-  scope         = "https://graph.microsoft.com/.default"
-  grant_type    = "client_credentials"
-}
-
-$tokenResp = Invoke-RestMethod -Method Post `
-  -Uri "https://login.microsoftonline.com/$tenantId/oauth2/v2.0/token" `
-  -ContentType "application/x-www-form-urlencoded" `
-  -Body $body
-
-$accessToken = $tokenResp.access_token
-$accessToken.Length
-```
-
-### 2) Decode the token payload and print permissions (`roles`)
-
-```powershell
-function Decode-JwtPayload {
-  param([string]$Jwt)
-
-  $parts = $Jwt.Split('.')
-  if ($parts.Length -lt 2) { throw "Not a JWT" }
-
-  $p = $parts[1].Replace('-', '+').Replace('_', '/')
-  switch ($p.Length % 4) { 0 { } 2 { $p += '==' } 3 { $p += '=' } default { throw "Bad base64 length" } }
-
-  $json = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($p))
-  return $json | ConvertFrom-Json
-}
-
-$payload = Decode-JwtPayload $accessToken
-
-"aud  = $($payload.aud)"
-"tid  = $($payload.tid)"
-"appid= $($payload.appid)"
-
-"roles:"
-$payload.roles
-```
-
-### What you should see
-
-* `aud` should be Graph (`https://graph.microsoft.com` or the Graph app GUID)
-* `roles` should include something like:
-
-  * `Sites.Read.All` **or**
-  * `Sites.ReadWrite.All` **or**
-  * `Sites.FullControl.All` **or**
-  * `Sites.Selected`
-
-✅ If **`roles` is empty / missing**, the app does *not* have Graph Application permissions consented properly.
+Perfect 👍 — here’s the **tight, no-nonsense checklist** you can drop straight into a ticket or email to the server team. This is written so they can follow it without interpretation.
 
 ---
 
-## Option B — Prove it by calling the failing endpoint directly (same token)
+## **Action Required: Fix Microsoft Graph App Permissions for SharePoint Access**
 
-This reproduces your `resolve_site` call with a raw request:
+### **Purpose**
 
-```powershell
-$siteUrl = "https://contoso.sharepoint.com/sites/MySite"
-$u = [Uri]$siteUrl
-
-$host = $u.Host
-$path = $u.AbsolutePath.TrimStart('/')
-
-$graphUrl = "https://graph.microsoft.com/v1.0/sites/$host:/$path`?`$select=id"
-
-Invoke-RestMethod -Method Get -Uri $graphUrl -Headers @{
-  Authorization = "Bearer $accessToken"
-}
-```
-
-* If this returns **401/403**, it’s permissions / site access.
-* If it returns JSON with an `id`, your `resolve_site` step should work.
+Enable app-only Microsoft Graph access to SharePoint sites for a service application that uploads documents and downloads PDF conversions.
 
 ---
 
-## Option C — Azure CLI (if you already have it installed)
+## **Step-by-Step Fix (Entra ID / Azure AD)**
 
-This is handy, but I usually avoid it for client secrets on the command line. Still, it exists:
+### **1. Open the App Registration**
 
-```powershell
-az login
-az account get-access-token --resource-type ms-graph --tenant YOUR_TENANT_GUID
-```
-
-⚠️ This typically returns a token for *your user* (delegated), not the app-only service principal—so it’s not always apples-to-apples with your app’s client-credentials flow.
+* Azure Portal → **Entra ID**
+* **App registrations**
+* Select the application used by the PDF conversion service
 
 ---
 
-## Two important notes (so expectations are right)
+### **2. Verify API Permission Type**
 
-1. **The token only shows what’s been granted to the app in Entra ID** (via `roles`).
-   It does **not** prove SharePoint-level access if you’re using **`Sites.Selected`**.
+Go to **API permissions**
 
-2. If you see `Sites.Selected` in `roles` but the site call fails, the missing step is:
+* Confirm permissions are under:
 
-* explicitly granting that app access to **that specific SharePoint site**.
-
----
-
-If you paste the output of just these lines (redact IDs if you want):
-
-* `aud`
-* `tid`
-* the list under `roles`
-
-…I can tell you immediately whether it’s:
-
-* wrong permission type (delegated vs application),
-* missing admin consent,
-* or `Sites.Selected` missing the site grant.
-
-
----
-Nice — **1943** means you successfully got an **app-only access token** from Entra ID. 👍
-And you’re right: **the token request does not need the site URL**. That step is only “authenticate and give me a token for Microsoft Graph.”
-
-Where the **site URL matters** is the *next* step: using that token to call Graph (your failing `resolve_site` call) and/or verifying the token has the right permissions.
-
-Here are the two follow-up checks you should add to your script.
+  * ✅ **Microsoft Graph → Application permissions**
+  * ❌ NOT “Delegated permissions”
 
 ---
 
-## 1) Check what permissions the token actually has (`roles`)
+### **3. Add Required Permission**
 
-Add this to the bottom of your script:
+Under **Microsoft Graph → Application permissions**, add **one** of the following:
 
-```powershell
-function Decode-JwtPayload {
-  param([string]$Jwt)
+* **Sites.ReadWrite.All** *(recommended for upload + conversion)*
 
-  $parts = $Jwt.Split('.')
-  if ($parts.Length -lt 2) { throw "Not a JWT" }
-
-  $p = $parts[1].Replace('-', '+').Replace('_', '/')
-  switch ($p.Length % 4) { 0 { } 2 { $p += '==' } 3 { $p += '=' } default { throw "Bad base64 length" } }
-
-  $json = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($p))
-  return $json | ConvertFrom-Json
-}
-
-$payload = Decode-JwtPayload $accessToken
-
-"aud   = $($payload.aud)"
-"tid   = $($payload.tid)"
-"appid = $($payload.appid)"
-"roles ="
-$payload.roles
-```
-
-### What you want to see
-
-You need **Application permissions** showing under `roles`, like:
-
-* `Sites.Read.All` or `Sites.ReadWrite.All` or `Sites.FullControl.All`
-* or `Sites.Selected` (but that requires an extra site-grant step)
-
-If `roles` is blank/missing → **permissions/admin consent are not set correctly** for app-only.
+  * OR **Sites.Read.All** *(read-only scenarios)*
+  * OR **Sites.Selected** *(only if site-scoped access is required)*
 
 ---
 
-## 2) Actually test the SharePoint site call (this is where site URL matters)
+### **4. Grant Admin Consent**
 
-Add this after the above:
+* Click **“Grant admin consent for <Tenant>”**
+* Confirm status shows **Granted for <Tenant>**
 
-```powershell
-$siteUrl = "https://contoso.sharepoint.com/sites/MySite"  # <-- set yours here
-$u = [Uri]$siteUrl
-
-$host = $u.Host
-$path = $u.AbsolutePath.TrimStart('/')
-
-$graphUrl = "https://graph.microsoft.com/v1.0/sites/$host:/$path`?`$select=id"
-
-"Calling: $graphUrl"
-
-try {
-  $site = Invoke-RestMethod -Method Get -Uri $graphUrl -Headers @{
-    Authorization = "Bearer $accessToken"
-  }
-  "SUCCESS: site id = $($site.id)"
-}
-catch {
-  "FAILED:"
-  $_.Exception.Message
-  if ($_.ErrorDetails -and $_.ErrorDetails.Message) { $_.ErrorDetails.Message }
-}
-```
-
-### Outcomes
-
-* ✅ If it prints a `site id`, then the `resolve_site` permission problem is **not** permissions (and we’d look at URL format / tenant mismatch).
-* ❌ If it fails with **401/403**, that’s almost always **missing/misconfigured application permissions**, or **Sites.Selected without a site grant**.
+> ⚠️ Without admin consent, the permission does not apply to app-only tokens.
 
 ---
 
-## Why your token length isn’t enough by itself
+### **5. (Only if using Sites.Selected) Grant Site Access**
 
-A token can be valid but still **lack authorization** for SharePoint resources. The proof is in:
+If **Sites.Selected** is used:
 
-* the token’s **`roles`** claim, and
-* whether it can successfully call the **site endpoint**.
+* Explicitly grant the app access to the target SharePoint site
+* This can be done via:
+
+  * Microsoft Graph
+  * PowerShell
+  * SharePoint Admin tooling
+
+> Without this step, Graph will return 401/403 even with a valid token.
 
 ---
 
-If you paste back the output of:
+## **Validation**
 
-* `aud`
-* the list under `roles` (or say “roles is blank”)
-* and whether the site call returns a site id or 401/403
+After completing the above:
 
-…I can tell you exactly which permission fix the server team needs (admin consent vs Sites.Selected site grant vs wrong tenant).
+* Acquire a new access token (client credentials flow)
+* Call:
+
+  ```
+  GET https://graph.microsoft.com/v1.0/sites/{tenant}.sharepoint.com:/{sitePath}?$select=id
+  ```
+* Expected result:
+
+  * ✅ JSON response with a `site id`
+  * ❌ 401/403 indicates permission or consent is still missing
+
+---
+
+## **Notes**
+
+* Token acquisition succeeding **does not** imply authorization is correct.
+* The failure is authorization-based, not a code defect.
+* No application changes are required once permissions are corrected.
+
+---
+
+If you want, I can also provide:
+
+* a **PowerShell script** the server team can run to verify permissions,
+* or a **one-paragraph executive summary** suitable for leadership review.
+
+You’ve done the hard part already — this checklist should let them fix it cleanly.
