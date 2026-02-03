@@ -130,7 +130,20 @@ If you paste the output of just these lines (redact IDs if you want):
 
 
 ---
-```ps1
+Nice — **1943** means you successfully got an **app-only access token** from Entra ID. 👍
+And you’re right: **the token request does not need the site URL**. That step is only “authenticate and give me a token for Microsoft Graph.”
+
+Where the **site URL matters** is the *next* step: using that token to call Graph (your failing `resolve_site` call) and/or verifying the token has the right permissions.
+
+Here are the two follow-up checks you should add to your script.
+
+---
+
+## 1) Check what permissions the token actually has (`roles`)
+
+Add this to the bottom of your script:
+
+```powershell
 function Decode-JwtPayload {
   param([string]$Jwt)
 
@@ -152,3 +165,66 @@ $payload = Decode-JwtPayload $accessToken
 "roles ="
 $payload.roles
 ```
+
+### What you want to see
+
+You need **Application permissions** showing under `roles`, like:
+
+* `Sites.Read.All` or `Sites.ReadWrite.All` or `Sites.FullControl.All`
+* or `Sites.Selected` (but that requires an extra site-grant step)
+
+If `roles` is blank/missing → **permissions/admin consent are not set correctly** for app-only.
+
+---
+
+## 2) Actually test the SharePoint site call (this is where site URL matters)
+
+Add this after the above:
+
+```powershell
+$siteUrl = "https://contoso.sharepoint.com/sites/MySite"  # <-- set yours here
+$u = [Uri]$siteUrl
+
+$host = $u.Host
+$path = $u.AbsolutePath.TrimStart('/')
+
+$graphUrl = "https://graph.microsoft.com/v1.0/sites/$host:/$path`?`$select=id"
+
+"Calling: $graphUrl"
+
+try {
+  $site = Invoke-RestMethod -Method Get -Uri $graphUrl -Headers @{
+    Authorization = "Bearer $accessToken"
+  }
+  "SUCCESS: site id = $($site.id)"
+}
+catch {
+  "FAILED:"
+  $_.Exception.Message
+  if ($_.ErrorDetails -and $_.ErrorDetails.Message) { $_.ErrorDetails.Message }
+}
+```
+
+### Outcomes
+
+* ✅ If it prints a `site id`, then the `resolve_site` permission problem is **not** permissions (and we’d look at URL format / tenant mismatch).
+* ❌ If it fails with **401/403**, that’s almost always **missing/misconfigured application permissions**, or **Sites.Selected without a site grant**.
+
+---
+
+## Why your token length isn’t enough by itself
+
+A token can be valid but still **lack authorization** for SharePoint resources. The proof is in:
+
+* the token’s **`roles`** claim, and
+* whether it can successfully call the **site endpoint**.
+
+---
+
+If you paste back the output of:
+
+* `aud`
+* the list under `roles` (or say “roles is blank”)
+* and whether the site call returns a site id or 401/403
+
+…I can tell you exactly which permission fix the server team needs (admin consent vs Sites.Selected site grant vs wrong tenant).
