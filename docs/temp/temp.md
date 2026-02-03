@@ -127,3 +127,27 @@ If you paste the output of just these lines (redact IDs if you want):
 * wrong permission type (delegated vs application),
 * missing admin consent,
 * or `Sites.Selected` missing the site grant.
+
+
+---
+
+function Decode-JwtPayload {
+  param([string]$Jwt)
+
+  $parts = $Jwt.Split('.')
+  if ($parts.Length -lt 2) { throw "Not a JWT" }
+
+  $p = $parts[1].Replace('-', '+').Replace('_', '/')
+  switch ($p.Length % 4) { 0 { } 2 { $p += '==' } 3 { $p += '=' } default { throw "Bad base64 length" } }
+
+  $json = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($p))
+  return $json | ConvertFrom-Json
+}
+
+$payload = Decode-JwtPayload $accessToken
+
+"aud   = $($payload.aud)"
+"tid   = $($payload.tid)"
+"appid = $($payload.appid)"
+"roles ="
+$payload.roles
