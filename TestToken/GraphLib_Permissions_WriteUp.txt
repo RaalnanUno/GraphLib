@@ -1,0 +1,51 @@
+𝗘𝘅𝗲𝗰𝘂𝘁𝗶𝘃𝗲 𝗦𝘂𝗺𝗺𝗮𝗿𝘆 — GraphLib SharePoint Access
+
+𝗧𝗟;𝗗𝗥
+GraphLib does not require tenant-wide SharePoint permissions. My initial assumption that Sites.ReadWrite.All was needed was incorrect. Further testing showed that the real blocker was a tenant mismatch (fdicdev vs fdicgov), not insufficient permissions.
+Correct approach: authenticate the application in the fdicgov tenant and use Sites.Selected with explicit site-level access. This resolves the issue while meeting least-privilege expectations.
+
+────────────────────────────────────────
+
+𝗪𝗵𝗮𝘁 𝗰𝗵𝗮𝗻𝗴𝗲𝗱
+During early troubleshooting, I requested Sites.ReadWrite.All under the assumption that broader permissions were required to resolve access errors. After deeper testing with Microsoft Graph:
+
+I confirmed that Sites.ReadWrite.All does not resolve cross-tenant access issues.
+
+The errors were caused by the application token being issued for the fdicdev Entra tenant, while the target SharePoint site and document library reside in fdicgov.
+
+Microsoft Graph permissions cannot cross tenant boundaries, regardless of scope.
+
+This clarified that the permission request was broader than necessary and not addressing the root cause.
+
+𝗪𝗵𝗮𝘁 𝘁𝗵𝗲 𝗿𝗼𝗼𝘁 𝗰𝗮𝘂𝘀𝗲 𝗶𝘀
+
+Graph site discovery consistently returned sites under fdicdev.sharepoint.com.
+
+The intended SharePoint site and “GraphLib” document library exist under fdicgov.sharepoint.com.
+
+This indicates the application is authenticating to the wrong Entra tenant.
+
+Increasing permissions (including Sites.ReadWrite.All) does not fix this condition.
+
+𝗖𝗼𝗿𝗿𝗲𝗰𝘁 𝗮𝗰𝗰𝗲𝘀𝘀 𝗺𝗼𝗱𝗲𝗹 (𝗿𝗲𝗰𝗼𝗺𝗺𝗲𝗻𝗱𝗲𝗱)
+
+Register or consent the GraphLib application in the fdicgov Entra tenant.
+
+Use 𝗦𝗶𝘁𝗲𝘀.𝗦𝗲𝗹𝗲𝗰𝘁𝗲𝗱 (Application permission).
+
+Grant the app explicit access to only the required SharePoint site (Read or Write).
+
+Operate using the SharePoint Site ID and Document Library (Drive) ID.
+
+𝗪𝗵𝘆 𝘁𝗵𝗶𝘀 𝗶𝘀 𝘁𝗵𝗲 𝗿𝗶𝗴𝗵𝘁 𝗼𝘂𝘁𝗰𝗼𝗺𝗲
+
+𝗟𝗲𝗮𝘀𝘁 𝗣𝗿𝗶𝘃𝗶𝗹𝗲𝗴𝗲: no tenant-wide SharePoint access.
+
+𝗟𝗼𝘄𝗲𝗿 𝗥𝗶𝘀𝗸: access limited to a single approved site.
+
+𝗔𝘂𝗱𝗶𝘁-𝗙𝗿𝗶𝗲𝗻𝗱𝗹𝘆: aligns with POA&M and security review expectations.
+
+𝗢𝗽𝗲𝗿𝗮𝘁𝗶𝗼𝗻𝗮𝗹𝗹𝘆 𝗦𝗼𝘂𝗻𝗱: avoids hostname and environment ambiguity.
+
+𝗥𝗲𝘀𝘂𝗹𝘁
+Once GraphLib authenticates against the fdicgov tenant and uses Sites.Selected with site-level approval, it can function as intended without tenant-wide permissions. This resolves the access issue and corrects the initial over-permissioning assumption.
