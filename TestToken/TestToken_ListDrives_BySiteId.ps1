@@ -20,6 +20,20 @@ $token = Invoke-RestMethod -Method Post -Uri $tokenUrl -ContentType "application
 
 $headers = @{ Authorization = "Bearer $($token.access_token)" }
 
+
+function Decode-JwtPayload([string]$jwt) {
+  $parts = $jwt.Split(".")
+  $p = $parts[1].Replace('-', '+').Replace('_', '/')
+  switch ($p.Length % 4) { 2 { $p += '==' } 3 { $p += '=' } }
+  $json = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($p))
+  return $json | ConvertFrom-Json
+}
+
+$payload = Decode-JwtPayload $token.access_token
+Write-Host "Token tenant (tid): $($payload.tid)"
+Write-Host "Token issuer (iss): $($payload.iss)"
+
+
 $drivesUrl = "$graphBase/sites/$siteId/drives?`$select=id,name,webUrl"
 Write-Host "Calling URL:" -ForegroundColor Yellow
 Write-Host $drivesUrl
