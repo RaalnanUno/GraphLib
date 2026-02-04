@@ -62,7 +62,7 @@ $headers = @{
 # -------------------------
 # Correct format:
 #   /sites/{hostname}:/sites/...   (hostname ONLY)
-$siteResolveUrl = "https://graph.microsoft.com/v1.0/sites/$spoHost:$sitePath?`$select=id,displayName,webUrl"
+$siteResolveUrl = "https://graph.microsoft.com/v1.0/sites/${spoHost}:${sitePath}?`$select=id,displayName,webUrl"
 
 Write-Host "Resolving site..." -ForegroundColor Cyan
 Write-Host "Graph URL: $siteResolveUrl"
