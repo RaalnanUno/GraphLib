@@ -1,5 +1,3 @@
-Hi [BigDog Name],
-
 I’m ready to start porting **GraphLib** over for our use, but we’re currently blocked on the **SharePoint + Microsoft Graph (app-only)** setup required for the PDF conversion pipeline.
 
 **TL;DR**
@@ -7,6 +5,7 @@ I’m ready to start porting **GraphLib** over for our use, but we’re currentl
 * We need a **SharePoint site + document library** that GraphLib can access, and an **Azure App Registration** for Microsoft Graph (client credentials).
 * Once those pieces are in place, I can point the runner at the site/library and begin validating the conversion flow immediately.
 * This email includes a simple task list so the server/admin team has a clear “do-this, then-that” checklist.
+* A video tutorial on it can be found here: https://youtu.be/2eCveBHMdKs
 
 ---
 
@@ -61,8 +60,6 @@ Once A–C are done, I can run a smoke test that:
 * uploads a sample .docx
 * downloads the PDF bytes
 * confirms the pipeline end-to-end
-
-If the server/admin team wants to verify independently, I can provide a minimal command/runbook, but I don’t want them to have to reverse-engineer the flow—this email is meant to be the checklist.
 
 ---
 
