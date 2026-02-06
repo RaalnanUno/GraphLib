@@ -13,15 +13,28 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "docs/GraphLib — Getting Started + Troubleshootng.md",
+                "file": "docs/temp/temp.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "GraphLib — Getting Started + Troubleshootng"
+              "title": "temp"
+            }
+          },
+          {
+            "id": "f5a206a5219f7789",
+            "type": "leaf",
+            "state": {
+              "type": "release-notes",
+              "state": {
+                "currentVersion": "1.11.5"
+              },
+              "icon": "lucide-book-up",
+              "title": "Release Notes 1.11.5"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -183,8 +196,12 @@
       "bases:Create new base": false
     }
   },
-  "active": "aa8cce52c730b1de",
+  "active": "f5a206a5219f7789",
   "lastOpenFiles": [
+    "TestToken.ps1",
+    "docs/temp/Screenshot 2026-02-03 153333.png",
+    "Pasted image 20260203153424.png",
+    "docs/GraphLib — Getting Started + Troubleshootng.md",
     "docs/ngdocs-angular-db-workitems.json",
     "docs/ngdocs-angular-db-workitems.cshtml",
     "docs/ngdocs-angular-db-workitems.md",

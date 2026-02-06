@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "dgSpecHash": "7fu3q83W1bg=",
+  "success": true,
+  "projectFilePath": "C:\\source\\repos\\RaalnanUno\\GraphLib\\src\\GraphLib.PdfConsoleNet48\\GraphLib.PdfConsoleNet48.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Rahsa\\.nuget\\packages\\microsoft.data.sqlite\\8.0.6\\microsoft.data.sqlite.8.0.6.nupkg.sha512",
+    "C:\\Users\\Rahsa\\.nuget\\packages\\microsoft.data.sqlite.core\\8.0.6\\microsoft.data.sqlite.core.8.0.6.nupkg.sha512",
+    "C:\\Users\\Rahsa\\.nuget\\packages\\microsoft.identity.client\\4.61.3\\microsoft.identity.client.4.61.3.nupkg.sha512",
+    "C:\\Users\\Rahsa\\.nuget\\packages\\microsoft.identitymodel.abstractions\\6.35.0\\microsoft.identitymodel.abstractions.6.35.0.nupkg.sha512",
+    "C:\\Users\\Rahsa\\.nuget\\packages\\sqlitepclraw.bundle_e_sqlite3\\2.1.6\\sqlitepclraw.bundle_e_sqlite3.2.1.6.nupkg.sha512",
+    "C:\\Users\\Rahsa\\.nuget\\packages\\sqlitepclraw.core\\2.1.6\\sqlitepclraw.core.2.1.6.nupkg.sha512",
+    "C:\\Users\\Rahsa\\.nuget\\packages\\sqlitepclraw.lib.e_sqlite3\\2.1.6\\sqlitepclraw.lib.e_sqlite3.2.1.6.nupkg.sha512",
+    "C:\\Users\\Rahsa\\.nuget\\packages\\sqlitepclraw.provider.dynamic_cdecl\\2.1.6\\sqlitepclraw.provider.dynamic_cdecl.2.1.6.nupkg.sha512",
+    "C:\\Users\\Rahsa\\.nuget\\packages\\system.buffers\\4.5.1\\system.buffers.4.5.1.nupkg.sha512",
+    "C:\\Users\\Rahsa\\.nuget\\packages\\system.diagnostics.diagnosticsource\\6.0.1\\system.diagnostics.diagnosticsource.6.0.1.nupkg.sha512",
+    "C:\\Users\\Rahsa\\.nuget\\packages\\system.memory\\4.5.4\\system.memory.4.5.4.nupkg.sha512",
+    "C:\\Users\\Rahsa\\.nuget\\packages\\system.numerics.vectors\\4.5.0\\system.numerics.vectors.4.5.0.nupkg.sha512",
+    "C:\\Users\\Rahsa\\.nuget\\packages\\system.runtime.compilerservices.unsafe\\6.0.0\\system.runtime.compilerservices.unsafe.6.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}
