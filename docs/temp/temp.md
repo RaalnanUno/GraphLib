@@ -1,86 +1,15 @@
-Below is a **single Markdown “drop-in” file** that contains the entire minimal project (a tiny **WinForms** app) that:
-
-- accepts a **SQL Server connection string**
-    
-- has a **file picker**
-    
-- uploads the selected file into the **EV** database table you point it at
-    
-- writes the file bytes into **Docs_Blob_MO (image)** and sets **GetDate()** timestamps on insert
-    
-
-> ✅ I’m assuming the table is something like `dbo.Docs` (or similar). Since you didn’t give the table name, this file makes it **one constant** you can change in one place.
-
----
-
-````markdown
-# EV Doc Uploader (Minimal WinForms)
-
-This is a minimal Windows desktop app that:
-- accepts a SQL Server connection string
-- lets you pick a file
-- inserts a record into an EV database table
-- stores file binary in `Docs_Blob_MO` (SQL `image`)
-- uses `GETDATE()` for `Docs_Crea_ts` and `Docs_last_updt_ts`
-
----
-
-## 1) Create the project
-
-Open PowerShell in the folder you want and run:
-
-```powershell
-dotnet new winforms -n EvDocUploader -f net8.0
-cd EvDocUploader
-dotnet add package Microsoft.Data.SqlClient
-````
-
-> If you’re on older .NET, tell me what version and I’ll adjust (net6.0 / net48).
-
----
-
-## 2) Files to create/replace
-
-### File: `EvDocUploader.csproj`
-
-Replace the entire file with this:
-
-```xml
-<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
-    <UseWindowsForms>true</UseWindowsForms>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
-
-</Project>
-```
-
----
-
-### File: `Program.cs`
-
-Replace the entire file with this:
-
-```csharp
 // File: Program.cs
 // Project: EvDocUploader (WinForms)
 // Target: net8.0-windows
 //
-// What this does:
-// - Resizable + maximizable WinForms UI (uses TableLayoutPanel for responsive layout)
-// - Accepts SQL Server connection string
-// - File picker
-// - Uploads the chosen file to EV database table
-// - Inserts columns you listed (plus docs_inst_id if present/needed)
+// Fixes:
+// - Resizable/maximizable UI
+// - Forces usable row heights so NumericUpDown fields never collapse to 2px
+// - Clean, simple form with connection string, file picker, and required fields
 //
 // IMPORTANT:
-// 1) Update TargetTable below to your real schema/table name.
-// 2) If your table includes docs_inst_id (you mentioned it), set it in the UI and it will be inserted.
-//    If your table does NOT have docs_inst_id, set IncludeDocsInstId=false below (or remove from SQL).
+// 1) Update TargetTable to your real table name (schema.table)
+// 2) If your table does NOT have docs_inst_id, set IncludeDocsInstId = false
 
 using System.Data;
 using System.Security.Cryptography;
@@ -103,14 +32,16 @@ public sealed class MainForm : Form
     // ✅ Change this to the real table name
     private const string TargetTable = "dbo.Docs";
 
-    // You mentioned docs_inst_id. If your table has it, keep this true.
-    // If not, set false (or remove docs_inst_id from the INSERT).
+    // You mentioned docs_inst_id. If your table has it, keep true; else set false.
     private const bool IncludeDocsInstId = true;
 
+    // ---- UI controls ----
     private readonly TextBox _txtConn = new();
     private readonly TextBox _txtFile = new();
+
     private readonly TextBox _txtDctyCd = new();
     private readonly TextBox _txtSrceTblCd = new();
+
     private readonly NumericUpDown _numSrceId = new();
     private readonly NumericUpDown _numInstId = new();
 
@@ -118,176 +49,236 @@ public sealed class MainForm : Form
     private readonly Button _btnUpload = new();
     private readonly Button _btnClear = new();
 
-    private readonly Label _lblStatus = new();
+    private readonly TextBox _txtStatus = new();
+
+    // Row height constants (prevents 2px-tall controls)
+    private const int RowH = 36;
+    private const int LabelW = 170;
 
     public MainForm()
     {
-        Text = "EV Doc Uploader (Resizable)";
-        Width = 980;
-        Height = 520;
-        MinimumSize = new Size(860, 420);
+        Text = "EV Doc Uploader";
+        StartPosition = FormStartPosition.CenterScreen;
 
-        // ✅ allow maximize + resizing
+        Width = 1050;
+        Height = 560;
+        MinimumSize = new Size(900, 460);
+
         FormBorderStyle = FormBorderStyle.Sizable;
         MaximizeBox = true;
 
-        StartPosition = FormStartPosition.CenterScreen;
-
-        // Root layout
+        // Root layout: a single TableLayoutPanel that fills the whole form
         var root = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
-            RowCount = 4,
+            RowCount = 3,
             Padding = new Padding(12),
-            AutoSize = false
         };
-        root.RowStyles.Add(new RowStyle(SizeType.AutoSize));      // Connection
-        root.RowStyles.Add(new RowStyle(SizeType.AutoSize));      // File
-        root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));  // Fields + buttons
-        root.RowStyles.Add(new RowStyle(SizeType.AutoSize));      // Status
 
-        // -------- Connection row --------
-        var connRow = MakeTwoColumnRow("Connection String:", _txtConn);
-        _txtConn.PlaceholderText = "Paste SQL Server connection string here...";
-        _txtConn.Dock = DockStyle.Fill;
+        // Top: form fields area (auto)
+        root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        // Middle: spacer/optional (fills)
+        root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        // Bottom: status (fixed-ish)
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 120));
 
-        // -------- File row --------
-        var fileRow = new TableLayoutPanel
-        {
-            Dock = DockStyle.Top,
-            ColumnCount = 3,
-            RowCount = 1,
-            AutoSize = true
-        };
-        fileRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150));
-        fileRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        fileRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
-
-        var lblFile = new Label { Text = "File:", AutoSize = true, Anchor = AnchorStyles.Left };
-        _txtFile.ReadOnly = true;
-        _txtFile.Dock = DockStyle.Fill;
-
-        _btnBrowse.Text = "Browse...";
-        _btnBrowse.Dock = DockStyle.Fill;
-        _btnBrowse.Click += (_, _) => BrowseFile();
-
-        fileRow.Controls.Add(lblFile, 0, 0);
-        fileRow.Controls.Add(_txtFile, 1, 0);
-        fileRow.Controls.Add(_btnBrowse, 2, 0);
-
-        // -------- Fields area (grid) --------
+        // ---- Fields panel (fixed row heights) ----
         var fields = new TableLayoutPanel
         {
-            Dock = DockStyle.Fill,
+            Dock = DockStyle.Top,
             ColumnCount = 4,
-            RowCount = 4,
-            AutoSize = false
+            AutoSize = true,
         };
 
-        // Columns: label | input | label | input
-        fields.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150));
+        fields.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, LabelW));
         fields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-        fields.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 170));
+        fields.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, LabelW));
         fields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
 
-        // Row styles
-        for (int i = 0; i < fields.RowCount; i++)
-            fields.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        // Helper to add a row with fixed height
+        int r = 0;
 
-        // docs_dcty_cd (char(4))
-        fields.Controls.Add(MakeLabel("docs_dcty_cd (4):"), 0, 0);
-        _txtDctyCd.Text = "FILE";
-        _txtDctyCd.Dock = DockStyle.Fill;
-        fields.Controls.Add(_txtDctyCd, 1, 0);
+        AddRow(fields, ref r,
+            leftLabel: "Connection String:",
+            leftControl: ConfigureTextBox(_txtConn, multiline: false, readOnly: false),
+            rightLabel: null,
+            rightControl: null);
 
-        // docs_srce_tbl_cd (char(6))
-        fields.Controls.Add(MakeLabel("docs_srce_tbl_cd (6):"), 2, 0);
-        _txtSrceTblCd.Text = "MANUAL";
-        _txtSrceTblCd.Dock = DockStyle.Fill;
-        fields.Controls.Add(_txtSrceTblCd, 3, 0);
+        AddRowFilePicker(fields, ref r);
 
-        // docs_srce_id (numeric(12,0))
-        fields.Controls.Add(MakeLabel("docs_srce_id:"), 0, 1);
-        _numSrceId.Minimum = 0;
-        _numSrceId.Maximum = 999_999_999_999;
-        _numSrceId.Dock = DockStyle.Fill;
-        _numSrceId.ThousandsSeparator = true;
-        fields.Controls.Add(_numSrceId, 1, 1);
+        AddRow(fields, ref r,
+            leftLabel: "docs_dcty_cd (char(4)):",
+            leftControl: ConfigureTextBox(_txtDctyCd, multiline: false, readOnly: false, defaultText: "FILE"),
+            rightLabel: "docs_srce_tbl_cd (char(6)):",
+            rightControl: ConfigureTextBox(_txtSrceTblCd, multiline: false, readOnly: false, defaultText: "MANUAL"));
 
-        // docs_inst_id (numeric(12,0)) - you said you couldn't see it before
-        fields.Controls.Add(MakeLabel("docs_inst_id:"), 2, 1);
-        _numInstId.Minimum = 0;
-        _numInstId.Maximum = 999_999_999_999;
-        _numInstId.Dock = DockStyle.Fill;
-        _numInstId.ThousandsSeparator = true;
-        fields.Controls.Add(_numInstId, 3, 1);
+        AddRow(fields, ref r,
+            leftLabel: "docs_srce_id (numeric(12,0)):",
+            leftControl: ConfigureNumeric(_numSrceId),
+            rightLabel: "docs_inst_id (numeric(12,0)):",
+            rightControl: ConfigureNumeric(_numInstId));
 
-        // Buttons row
+        // ---- Buttons row ----
         var buttons = new FlowLayoutPanel
         {
             Dock = DockStyle.Top,
             FlowDirection = FlowDirection.RightToLeft,
+            WrapContents = false,
             AutoSize = true,
-            Padding = new Padding(0, 10, 0, 0),
-            WrapContents = false
+            Padding = new Padding(0, 10, 0, 0)
         };
 
         _btnUpload.Text = "Upload";
-        _btnUpload.Width = 120;
-        _btnUpload.Height = 34;
+        _btnUpload.Width = 140;
+        _btnUpload.Height = RowH;
         _btnUpload.Click += async (_, _) => await UploadAsync();
 
         _btnClear.Text = "Clear";
-        _btnClear.Width = 120;
-        _btnClear.Height = 34;
+        _btnClear.Width = 140;
+        _btnClear.Height = RowH;
         _btnClear.Click += (_, _) => ClearForm();
 
         buttons.Controls.Add(_btnUpload);
         buttons.Controls.Add(_btnClear);
 
-        // Put fields + buttons into a panel
-        var midPanel = new Panel { Dock = DockStyle.Fill, AutoScroll = true };
-        midPanel.Controls.Add(buttons);
-        midPanel.Controls.Add(fields);
+        // Container panel for top section
+        var topPanel = new Panel { Dock = DockStyle.Top, AutoSize = true };
+        topPanel.Controls.Add(buttons);
+        topPanel.Controls.Add(fields);
 
-        // -------- Status row --------
-        _lblStatus.Text = "Status: Ready";
-        _lblStatus.Dock = DockStyle.Fill;
-        _lblStatus.AutoSize = false;
-        _lblStatus.Height = 80;
+        // ---- Status box (bottom) ----
+        _txtStatus.Dock = DockStyle.Fill;
+        _txtStatus.Multiline = true;
+        _txtStatus.ReadOnly = true;
+        _txtStatus.ScrollBars = ScrollBars.Vertical;
+        _txtStatus.Font = new Font(FontFamily.GenericMonospace, 9.5f);
+        SetStatus("Ready.");
 
-        // Add to root
-        root.Controls.Add(connRow, 0, 0);
-        root.Controls.Add(fileRow, 0, 1);
-        root.Controls.Add(midPanel, 0, 2);
-        root.Controls.Add(_lblStatus, 0, 3);
+        root.Controls.Add(topPanel, 0, 0);
+        root.Controls.Add(new Panel { Dock = DockStyle.Fill }, 0, 1); // spacer
+        root.Controls.Add(_txtStatus, 0, 2);
 
         Controls.Add(root);
     }
 
-    private static Label MakeLabel(string text) =>
-        new() { Text = text, AutoSize = true, Anchor = AnchorStyles.Left };
+    // ---------- UI builders ----------
 
-    private static TableLayoutPanel MakeTwoColumnRow(string labelText, Control input)
+    private void AddRow(
+        TableLayoutPanel grid,
+        ref int rowIndex,
+        string? leftLabel,
+        Control? leftControl,
+        string? rightLabel,
+        Control? rightControl)
     {
-        var row = new TableLayoutPanel
+        grid.RowCount = rowIndex + 1;
+        grid.RowStyles.Add(new RowStyle(SizeType.Absolute, RowH));
+
+        if (leftLabel is not null)
         {
-            Dock = DockStyle.Top,
-            ColumnCount = 2,
-            RowCount = 1,
-            AutoSize = true
-        };
-        row.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150));
-        row.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            var lbl = new Label
+            {
+                Text = leftLabel,
+                AutoSize = false,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Dock = DockStyle.Fill
+            };
+            grid.Controls.Add(lbl, 0, rowIndex);
+        }
 
-        var lbl = new Label { Text = labelText, AutoSize = true, Anchor = AnchorStyles.Left };
-        input.Dock = DockStyle.Fill;
+        if (leftControl is not null)
+        {
+            leftControl.Dock = DockStyle.Fill;
+            leftControl.Margin = new Padding(3, 6, 12, 6); // vertical padding helps visuals
+            grid.Controls.Add(leftControl, 1, rowIndex);
+        }
 
-        row.Controls.Add(lbl, 0, 0);
-        row.Controls.Add(input, 1, 0);
-        return row;
+        if (rightLabel is not null)
+        {
+            var lbl = new Label
+            {
+                Text = rightLabel,
+                AutoSize = false,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Dock = DockStyle.Fill
+            };
+            grid.Controls.Add(lbl, 2, rowIndex);
+        }
+
+        if (rightControl is not null)
+        {
+            rightControl.Dock = DockStyle.Fill;
+            rightControl.Margin = new Padding(3, 6, 3, 6);
+            grid.Controls.Add(rightControl, 3, rowIndex);
+        }
+
+        rowIndex++;
     }
+
+    private void AddRowFilePicker(TableLayoutPanel grid, ref int rowIndex)
+    {
+        grid.RowCount = rowIndex + 1;
+        grid.RowStyles.Add(new RowStyle(SizeType.Absolute, RowH));
+
+        var lbl = new Label
+        {
+            Text = "File:",
+            AutoSize = false,
+            TextAlign = ContentAlignment.MiddleLeft,
+            Dock = DockStyle.Fill
+        };
+        grid.Controls.Add(lbl, 0, rowIndex);
+
+        _txtFile.ReadOnly = true;
+        _txtFile.Dock = DockStyle.Fill;
+        _txtFile.Margin = new Padding(3, 6, 12, 6);
+        grid.Controls.Add(_txtFile, 1, rowIndex);
+
+        // Span file textbox across columns 1 and 2 (so Browse can sit in col 3)
+        grid.SetColumnSpan(_txtFile, 2);
+
+        _btnBrowse.Text = "Browse...";
+        _btnBrowse.Dock = DockStyle.Fill;
+        _btnBrowse.Margin = new Padding(3, 4, 3, 4);
+        _btnBrowse.Height = RowH;
+        _btnBrowse.Click += (_, _) => BrowseFile();
+
+        grid.Controls.Add(_btnBrowse, 3, rowIndex);
+
+        rowIndex++;
+    }
+
+    private static TextBox ConfigureTextBox(TextBox tb, bool multiline, bool readOnly, string? defaultText = null)
+    {
+        tb.Multiline = multiline;
+        tb.ReadOnly = readOnly;
+        tb.Text = defaultText ?? tb.Text;
+
+        // Force a sensible height even when dock-filled
+        tb.MinimumSize = new Size(0, 26);
+
+        return tb;
+    }
+
+    private static NumericUpDown ConfigureNumeric(NumericUpDown n)
+    {
+        n.Minimum = 0;
+        n.Maximum = 999_999_999_999;
+        n.DecimalPlaces = 0;
+        n.ThousandsSeparator = true;
+
+        // ✅ The important part: prevent the "2px tall" collapse
+        n.MinimumSize = new Size(0, 28);
+        n.Height = 28;
+
+        // Also prevent weird autosize behavior
+        n.AutoSize = false;
+
+        return n;
+    }
+
+    // ---------- Actions ----------
 
     private void BrowseFile()
     {
@@ -302,7 +293,7 @@ public sealed class MainForm : Form
         if (ofd.ShowDialog(this) == DialogResult.OK)
         {
             _txtFile.Text = ofd.FileName;
-            SetStatus("Ready to upload selected file.");
+            SetStatus("Selected file. Ready to upload.");
         }
     }
 
@@ -336,12 +327,12 @@ public sealed class MainForm : Form
             SetUiEnabled(false);
             SetStatus("Uploading...");
 
-            const int maxAttempts = 5;
+            const int maxAttempts = 6;
             for (int attempt = 1; attempt <= maxAttempts; attempt++)
             {
                 var docsId = GenerateNumeric12();
 
-                int rows = await InsertDocAsync(
+                var rows = await InsertDocAsync(
                     connStr,
                     docsId,
                     fileNameOnly,
@@ -354,14 +345,14 @@ public sealed class MainForm : Form
 
                 if (rows == 1)
                 {
-                    SetStatus($"SUCCESS: Uploaded '{fileNameOnly}' as Docs_ID={docsId} (bytes={fileSize}).");
+                    SetStatus($"SUCCESS: Uploaded '{fileNameOnly}' as Docs_ID={docsId}\r\nSize: {fileSize} bytes");
                     return;
                 }
 
                 SetStatus($"ERROR: Insert affected {rows} rows (attempt {attempt}/{maxAttempts}).");
             }
 
-            SetStatus("ERROR: Failed to insert after multiple attempts (possible ID collisions or constraints).");
+            SetStatus("ERROR: Failed after multiple attempts (possible ID collisions/constraints).");
         }
         catch (SqlException ex)
         {
@@ -388,7 +379,6 @@ public sealed class MainForm : Form
         long docsInstId,
         byte[] blob)
     {
-        // Build INSERT that optionally includes docs_inst_id
         string sql;
 
         if (IncludeDocsInstId)
@@ -456,7 +446,6 @@ VALUES
         using var cmd = conn.CreateCommand();
         cmd.CommandText = sql;
 
-        // numeric(12,0)
         cmd.Parameters.Add(new SqlParameter("@Docs_ID", SqlDbType.Decimal)
         {
             Precision = 12,
@@ -464,13 +453,11 @@ VALUES
             Value = docsId
         });
 
-        // char(254)
         cmd.Parameters.Add(new SqlParameter("@Docs_File_Nm", SqlDbType.Char, 254)
         {
             Value = fileNameOnly ?? string.Empty
         });
 
-        // numeric(12,0)
         cmd.Parameters.Add(new SqlParameter("@docs_cuml_size_nr", SqlDbType.Decimal)
         {
             Precision = 12,
@@ -478,19 +465,16 @@ VALUES
             Value = fileSize
         });
 
-        // char(4)
         cmd.Parameters.Add(new SqlParameter("@docs_dcty_cd", SqlDbType.Char, 4)
         {
             Value = docsDctyCd
         });
 
-        // char(6)
         cmd.Parameters.Add(new SqlParameter("@docs_srce_tbl_cd", SqlDbType.Char, 6)
         {
             Value = docsSrceTblCd
         });
 
-        // numeric(12,0)
         cmd.Parameters.Add(new SqlParameter("@docs_srce_id", SqlDbType.Decimal)
         {
             Precision = 12,
@@ -508,7 +492,6 @@ VALUES
             });
         }
 
-        // image
         cmd.Parameters.Add(new SqlParameter("@Docs_Blob_MO", SqlDbType.Image)
         {
             Value = blob
@@ -541,12 +524,12 @@ VALUES
         _txtSrceTblCd.Text = "MANUAL";
         _numSrceId.Value = 0;
         _numInstId.Value = 0;
-        SetStatus("Ready");
+        SetStatus("Ready.");
     }
 
     private void SetStatus(string message)
     {
-        _lblStatus.Text = "Status: " + message;
+        _txtStatus.Text = message;
     }
 
     private void SetUiEnabled(bool enabled)
@@ -561,59 +544,3 @@ VALUES
         _numInstId.Enabled = enabled;
     }
 }
-```
-
----
-
-## 3) Run it
-
-```powershell
-dotnet run
-```
-
-Paste the connection string, browse for a file, and click Upload.
-
----
-
-## Notes / Assumptions
-
-1. **Table name**
-    
-
-- This project uses `dbo.Docs` by default.
-    
-- Change `TargetTable` at the top of `MainForm` if needed.
-    
-
-2. **Fixed-length CHAR fields**
-    
-
-- You gave `char(254)`, `char(4)`, and `char(6)`. We send them as `SqlDbType.Char` with lengths.
-    
-
-3. **Docs_ID**
-    
-
-- Generated as a random numeric up to 12 digits.
-    
-- If your DB enforces uniqueness and collisions occur, we retry a few times.
-    
-
-4. **Docs_Crea_ts / Docs_last_updt_ts**
-    
-
-- Insert uses `GETDATE()` in SQL, exactly as requested.
-    
-
-If you paste your exact table name (and whether Docs_ID is a PK), I can tighten the insert logic (e.g., detect duplicate-key and retry only in that case).
-
-```
-
----
-
-If you reply with:
-1) the **actual table name** (schema + table), and  
-2) whether **Docs_ID is a primary key / unique**,  
-
-…I’ll adjust the insert to be 100% aligned (including smarter duplicate-key retry), **without making the project more complex**.
-```
