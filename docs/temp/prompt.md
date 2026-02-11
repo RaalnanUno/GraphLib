@@ -1,107 +1,175 @@
-### **WI-XXXX – Integrate GraphLib PDF Runner with EV Attachment Stored Procedure**
 
-**Type:** User Story
-**Epic:** EV Modernization – DB2 Retirement / Document Pipeline
-**Sprint Target:** TBD (Post-POC / Implementation Sprint)
-**Priority:** High
+# 📌 Work Item – Product Backlog Item (Implementation)
 
----
-
-### **Title**
-
-Wire GraphLib PDF Runner output to EV database using `p_ins_t_docs_attachments`
+**Work Item Type:** Product Backlog Item
+**Title:** Implement MuleSoft API Integration for Case Manager Info (Replace DB2 Pull)
 
 ---
 
-### **Description**
+## 🎯 Business Objective
 
-As part of the EV modernization effort, the GraphLib PDF Runner must persist generated PDF files directly into the EV SQL Server database.
+Replace the legacy DB2 data retrieval for **Case Manager Info** in the EV application with a MuleSoft API–based integration validated during the POC.
 
-Instead of writing PDFs to disk or SharePoint, the runner will call the stored procedure:
-
-`p_ins_t_docs_attachments`
-
-The procedure will store the PDF as a binary blob along with required metadata.
-
-This task establishes the database integration layer between GraphLib and the EV attachment storage model.
+This work item covers production-ready implementation, validation, and transition strategy.
 
 ---
 
-### **Stored Procedure Parameters**
+## 📖 Background
 
-| Parameter           | Type   | Description                |
-| ------------------- | ------ | -------------------------- |
-| `docs_id`           | int    | Unique document identifier |
-| `docs_dcty_cd`      | string | Document type code         |
-| `docs_last_updt_ts` | string | Last updated timestamp     |
-| `docs_file_nm`      | string | File name (no path)        |
-| `docs_inst_id`      | string | Source instance ID         |
-| `docs_blob_mo`      | bytes  | PDF binary content         |
+The POC confirmed:
 
----
+* MuleSoft endpoint supports required Case Manager Info data.
+* Authentication model is viable.
+* Field mappings and transformations are defined.
+* Known data gaps and risks documented.
 
-### **Technical Scope**
-
-1. Extend PDF Runner pipeline to:
-
-   * Capture generated PDF as `byte[]`
-   * Extract file name
-   * Generate or receive `docs_id`
-   * Capture/update timestamp
-
-2. Implement database access layer:
-
-   * Use parameterized SQL command
-   * Execute `p_ins_t_docs_attachments`
-   * Handle connection string via configuration
-   * Ensure async-safe execution
-
-3. Add:
-
-   * Structured logging
-   * Failure handling (DB unavailable, SP failure)
-   * Retry logic (if required by standards)
-
-4. Validate:
-
-   * Correct binary storage
-   * Correct metadata persistence
-   * File integrity after retrieval
+This sprint implements the integration and prepares the application for DB2 retirement.
 
 ---
 
-### **Acceptance Criteria**
+## 🧱 Implementation Scope
 
-* [ ] PDF Runner successfully calls `p_ins_t_docs_attachments`
-* [ ] Stored PDF can be retrieved and opened without corruption
-* [ ] Metadata fields populate correctly
-* [ ] No duplicate records created
-* [ ] Errors are logged with meaningful diagnostics
-* [ ] Integration tested against EV SQL Server environment
+### 1️⃣ API Client Integration
 
----
-
-### **Out of Scope**
-
-* Refactoring of stored procedure
-* DB schema changes
-* UI retrieval logic
-* Batch processing optimization
+* Implement secure MuleSoft API client
+* Configure authentication (OAuth / client credentials / etc.)
+* Externalize configuration (no hard-coded secrets)
+* Add timeout and retry policies
 
 ---
 
-### **Dependencies**
+### 2️⃣ Data Mapping Layer
 
-* Confirm stored procedure signature
-* Confirm connection string access method
-* Confirm docs_id generation strategy (DB vs app)
+* Map MuleSoft payload → EV domain model
+* Apply required transformations identified in POC
+* Handle null/optional fields gracefully
+* Validate data type compatibility
 
 ---
 
-### **Risk Considerations**
+### 3️⃣ Replace DB2 Logic
 
-* Large file size memory handling
-* SQL timeout issues
-* Blob truncation risks
-* Transaction handling consistency
+* Remove direct DB2 query logic for Case Manager Info
+* Feature-flag or toggle during transition (if required)
+* Ensure no other modules depend on legacy DB2 pull
+
+---
+
+### 4️⃣ Error Handling & Logging
+
+* Structured logging for:
+
+  * API failures
+  * Auth failures
+  * Mapping errors
+* User-safe error messaging (no internal exposure)
+* Telemetry for monitoring (if applicable)
+
+---
+
+### 5️⃣ Performance & Reliability
+
+* Validate response time meets acceptable threshold
+* Validate handling of:
+
+  * Network failure
+  * API downtime
+  * Unexpected payload changes
+
+---
+
+### 6️⃣ Configuration & Security
+
+* Store credentials securely (Key Vault / config store / environment variables)
+* Ensure least-privilege access
+* Confirm compliance with EV security standards
+
+---
+
+## 🚫 Out of Scope
+
+* Retirement of DB2 infrastructure (separate item)
+* UI redesign
+* Major architectural refactoring
+* Caching redesign (unless required for stability)
+
+---
+
+## ✅ Acceptance Criteria
+
+* [ ] EV retrieves Case Manager Info exclusively from MuleSoft API
+* [ ] DB2 pull for Case Manager Info removed or disabled
+* [ ] All required fields populate correctly in EV
+* [ ] Field mapping verified against POC documentation
+* [ ] Secure authentication implemented (no plaintext secrets)
+* [ ] Error handling implemented and validated
+* [ ] Logging and monitoring enabled
+* [ ] Integration tested in lower environment
+* [ ] Regression testing completed
+* [ ] Documentation updated
+
+---
+
+## 🧪 Testing Requirements
+
+* Unit tests for:
+
+  * API client
+  * Mapping logic
+* Integration testing in DEV/QA
+* Negative testing:
+
+  * Expired token
+  * 500 response
+  * Partial payload
+* Performance validation
+
+---
+
+## 📦 Deliverables
+
+* Updated EV codebase
+* Config updates (non-production)
+* Updated technical documentation
+* Deployment instructions
+* Test evidence
+
+---
+
+## 🏗 Dependencies
+
+* MuleSoft production endpoint access
+* API credentials
+* Security approval
+* Lower environment test data
+* DevOps deployment support
+
+---
+
+## ⚠ Risks
+
+* MuleSoft API changes during implementation
+* Unexpected latency
+* Incomplete data compared to DB2
+* Authentication renewal complexity
+
+---
+
+## 📈 Business Value
+
+* Removes legacy DB2 dependency
+* Aligns EV to API-first modernization
+* Improves maintainability and compliance posture
+* Enables future decoupling from legacy systems
+
+---
+
+## 🏷 Suggested Tags
+
+`ev`
+`integration`
+`mulesoft`
+`db2-retirement`
+`modernization`
+`sprint-implementation`
 
