@@ -1,12 +1,12 @@
 
-# 📌 Work Item – Product Backlog Item (Implementation)
+#  Work Item – Product Backlog Item (Implementation)
 
 **Work Item Type:** Product Backlog Item
 **Title:** Implement MuleSoft API Integration for Case Manager Info (Replace DB2 Pull)
 
 ---
 
-## 🎯 Business Objective
+##  Business Objective
 
 Replace the legacy DB2 data retrieval for **Case Manager Info** in the EV application with a MuleSoft API–based integration validated during the POC.
 
@@ -14,7 +14,7 @@ This work item covers production-ready implementation, validation, and transitio
 
 ---
 
-## 📖 Background
+##  Background
 
 The POC confirmed:
 
@@ -27,9 +27,9 @@ This sprint implements the integration and prepares the application for DB2 reti
 
 ---
 
-## 🧱 Implementation Scope
+##  Implementation Scope
 
-### 1️⃣ API Client Integration
+###  API Client Integration
 
 * Implement secure MuleSoft API client
 * Configure authentication (OAuth / client credentials / etc.)
@@ -38,7 +38,7 @@ This sprint implements the integration and prepares the application for DB2 reti
 
 ---
 
-### 2️⃣ Data Mapping Layer
+###  Data Mapping Layer
 
 * Map MuleSoft payload → EV domain model
 * Apply required transformations identified in POC
@@ -47,7 +47,7 @@ This sprint implements the integration and prepares the application for DB2 reti
 
 ---
 
-### 3️⃣ Replace DB2 Logic
+###  Replace DB2 Logic
 
 * Remove direct DB2 query logic for Case Manager Info
 * Feature-flag or toggle during transition (if required)
@@ -55,7 +55,7 @@ This sprint implements the integration and prepares the application for DB2 reti
 
 ---
 
-### 4️⃣ Error Handling & Logging
+###  Error Handling & Logging
 
 * Structured logging for:
 
@@ -67,7 +67,7 @@ This sprint implements the integration and prepares the application for DB2 reti
 
 ---
 
-### 5️⃣ Performance & Reliability
+###  Performance & Reliability
 
 * Validate response time meets acceptable threshold
 * Validate handling of:
@@ -78,7 +78,7 @@ This sprint implements the integration and prepares the application for DB2 reti
 
 ---
 
-### 6️⃣ Configuration & Security
+###  Configuration & Security
 
 * Store credentials securely (Key Vault / config store / environment variables)
 * Ensure least-privilege access
@@ -86,7 +86,7 @@ This sprint implements the integration and prepares the application for DB2 reti
 
 ---
 
-## 🚫 Out of Scope
+##  Out of Scope
 
 * Retirement of DB2 infrastructure (separate item)
 * UI redesign
@@ -95,7 +95,7 @@ This sprint implements the integration and prepares the application for DB2 reti
 
 ---
 
-## ✅ Acceptance Criteria
+##  Acceptance Criteria
 
 * [ ] EV retrieves Case Manager Info exclusively from MuleSoft API
 * [ ] DB2 pull for Case Manager Info removed or disabled
@@ -110,7 +110,7 @@ This sprint implements the integration and prepares the application for DB2 reti
 
 ---
 
-## 🧪 Testing Requirements
+##  Testing Requirements
 
 * Unit tests for:
 
@@ -126,7 +126,7 @@ This sprint implements the integration and prepares the application for DB2 reti
 
 ---
 
-## 📦 Deliverables
+##  Deliverables
 
 * Updated EV codebase
 * Config updates (non-production)
@@ -136,7 +136,7 @@ This sprint implements the integration and prepares the application for DB2 reti
 
 ---
 
-## 🏗 Dependencies
+##  Dependencies
 
 * MuleSoft production endpoint access
 * API credentials
@@ -146,7 +146,7 @@ This sprint implements the integration and prepares the application for DB2 reti
 
 ---
 
-## ⚠ Risks
+##  Risks
 
 * MuleSoft API changes during implementation
 * Unexpected latency
@@ -155,7 +155,7 @@ This sprint implements the integration and prepares the application for DB2 reti
 
 ---
 
-## 📈 Business Value
+##  Business Value
 
 * Removes legacy DB2 dependency
 * Aligns EV to API-first modernization
@@ -164,7 +164,7 @@ This sprint implements the integration and prepares the application for DB2 reti
 
 ---
 
-## 🏷 Suggested Tags
+##  Suggested Tags
 
 `ev`
 `integration`
