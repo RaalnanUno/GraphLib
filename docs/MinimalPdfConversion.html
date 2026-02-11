@@ -1,0 +1,242 @@
+<!-- File: docs/MinimalPdfConversion.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>GraphLib — Minimal PDF Conversion</title>
+
+    <!-- Bootstrap 5 (CSS) -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      crossorigin="anonymous"
+    />
+
+    <!-- Bootstrap Icons -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Shared site CSS -->
+    <link rel="stylesheet" href="style.css" />
+
+    <style>
+      .app-shell {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 1rem;
+      }
+      @media (max-width: 992px) {
+        .app-shell {
+          grid-template-columns: 1fr;
+        }
+      }
+      .sticky-aside {
+        position: sticky;
+        top: 1rem;
+        height: calc(100vh - 2rem);
+        overflow: auto;
+      }
+      pre {
+        background: #1e1e1e;
+        color: #dcdcdc;
+        padding: 1rem;
+        border-radius: 0.75rem;
+        overflow-x: auto;
+      }
+      code {
+        color: #9cdcfe;
+      }
+      .callout {
+        border-left: 4px solid #0d6efd;
+        padding-left: 0.75rem;
+      }
+      .mermaid-wrap {
+        overflow-x: auto;
+      }
+      .mermaid {
+        background: #fff;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        border-radius: 0.75rem;
+        padding: 1rem;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Top Nav -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="index.html">GraphLib</a>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#topNav"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="topNav">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item"><a class="nav-link active" href="MinimalPdfConversion.html">Minimal Conversion</a></li>
+            <li class="nav-item"><a class="nav-link" href="GraphLibPdfRunner_Sequence.html">PdfRunner Diagram</a></li>
+            <li class="nav-item"><a class="nav-link" href="GettingStarted.html">Getting Started</a></li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <main class="container-fluid my-3">
+      <div class="app-shell">
+        <!-- Aside -->
+        <aside class="sticky-aside">
+          <div class="card mb-3">
+            <div class="card-body">
+              <h5 class="card-title"><i class="bi bi-lightning-charge me-2"></i>Minimal Goal</h5>
+              <p class="card-text mb-2">
+                Convert a single Office document to PDF using:
+              </p>
+              <ul class="small mb-0">
+                <li>App-only authentication</li>
+                <li>One SharePoint site</li>
+                <li>One document library</li>
+                <li>Temporary working folder</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="card mb-3">
+            <div class="card-body">
+              <h6 class="card-title"><i class="bi bi-gear me-2"></i>Required Settings</h6>
+              <ul class="small mb-0">
+                <li>TenantId</li>
+                <li>ClientId</li>
+                <li>ClientSecret</li>
+                <li>SiteUrl</li>
+                <li>LibraryName</li>
+                <li>TempFolder</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- YouTube Card (as requested previously style) -->
+          <div class="card mb-3">
+            <div class="card-body">
+              <h6 class="card-title"><i class="bi bi-youtube me-2"></i>Setup Walkthrough</h6>
+              <div class="ratio ratio-16x9">
+                <iframe
+                  src="https://www.youtube.com/embed/CasRxQ4QwZk?rel=0&loop=1&playlist=CasRxQ4QwZk"
+                  title="Graph Setup Walkthrough"
+                  allowfullscreen
+                ></iframe>
+              </div>
+              <div class="small text-muted mt-2">
+                Loops automatically. Does not open in lightbox.
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-body">
+              <h6 class="card-title"><i class="bi bi-check2-circle me-2"></i>Definition of Done</h6>
+              <ul class="small mb-0">
+                <li>Input file uploaded</li>
+                <li>PDF downloaded successfully</li>
+                <li>Temp file cleaned up</li>
+                <li>No manual SharePoint steps required</li>
+              </ul>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Main -->
+        <section>
+          <div class="card mb-4">
+            <div class="card-body">
+              <h3>Minimal PDF Conversion Flow</h3>
+              <p class="text-muted">
+                This is the smallest viable slice of GraphLib: upload → convert → download → delete.
+              </p>
+
+              <div class="mermaid-wrap mb-4">
+                <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Caller
+    participant Runner as GraphLibPdfRunner
+    participant MSAL
+    participant Graph
+    participant SharePoint
+
+    Caller->>Runner: RunAsync("input.docx")
+    Runner->>MSAL: AcquireTokenForClient()
+    MSAL-->>Runner: access_token
+
+    Runner->>Graph: Resolve Site + Drive
+    Runner->>SharePoint: Upload file to temp folder
+    Runner->>Graph: Download as PDF (?format=pdf)
+    Graph-->>Runner: PDF stream
+    Runner->>SharePoint: Delete temp file
+    Runner-->>Caller: Success (output.pdf)
+                </div>
+              </div>
+
+              <div class="callout mb-4">
+                <strong>Key Principle:</strong>
+                SharePoint is treated as a temporary rendering engine —
+                not as long-term storage.
+              </div>
+
+              <h5>Minimal Console Usage</h5>
+              <pre><code>dotnet run --project GraphLib.Console `
+  --file "C:\Docs\Alpha.docx"</code></pre>
+
+              <h5>Minimal Settings Example</h5>
+              <pre><code>{
+  "TenantId": "YOUR-TENANT-ID",
+  "ClientId": "YOUR-CLIENT-ID",
+  "ClientSecret": "YOUR-CLIENT-SECRET",
+  "SiteUrl": "https://contoso.sharepoint.com/sites/MySite",
+  "LibraryName": "Documents",
+  "TempFolder": "_graphlib-temp",
+  "ConflictBehavior": "replace"
+}</code></pre>
+
+              <h5>Error Handling (Minimal Version)</h5>
+              <ul>
+                <li>403 → Permission scope issue (Sites.Selected not granted)</li>
+                <li>404 → Site or library mismatch</li>
+                <li>401 → Token acquisition failure</li>
+              </ul>
+
+              <h5>Optional: Expand Later</h5>
+              <ul>
+                <li>Chunked upload for large files</li>
+                <li>SQLite logging</li>
+                <li>Green/Yellow/Red retention logic</li>
+                <li>Batch processing</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Bootstrap -->
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+      crossorigin="anonymous"
+    ></script>
+
+    <!-- Mermaid -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+      mermaid.initialize({
+        startOnLoad: true,
+        securityLevel: "strict"
+      });
+    </script>
+  </body>
+</html>

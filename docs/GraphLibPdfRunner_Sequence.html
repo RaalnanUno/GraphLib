@@ -1,0 +1,227 @@
+<!-- File: docs/GraphLibPdfRunner_Sequence.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>GraphLib — PdfRunner Sequence Diagram</title>
+
+    <!-- Bootstrap 5 (CSS) -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      crossorigin="anonymous"
+    />
+
+    <!-- Bootstrap Icons -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Shared site CSS (same pattern as your other docs pages) -->
+    <link rel="stylesheet" href="style.css" />
+
+    <style>
+      /* Keep it readable even if style.css is minimal */
+      .app-shell {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 1rem;
+      }
+      @media (max-width: 992px) {
+        .app-shell {
+          grid-template-columns: 1fr;
+        }
+      }
+      .sticky-aside {
+        position: sticky;
+        top: 1rem;
+        height: calc(100vh - 2rem);
+        overflow: auto;
+      }
+      .mermaid {
+        background: #fff;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        border-radius: 0.75rem;
+        padding: 1rem;
+      }
+      /* Mermaid sometimes renders wide; allow horizontal scroll without breaking layout */
+      .mermaid-wrap {
+        overflow-x: auto;
+      }
+      code.kbdlike {
+        background: rgba(0, 0, 0, 0.06);
+        padding: 0.1rem 0.35rem;
+        border-radius: 0.35rem;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Top nav (keep the same header pattern you use elsewhere) -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="index.html">GraphLib</a>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#topNav"
+          aria-controls="topNav"
+          aria-expanded="false"
+          aria-label="Toggle navigation"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="topNav">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item"><a class="nav-link" href="GettingStarted.html">Getting Started</a></li>
+            <li class="nav-item"><a class="nav-link" href="MinimalPdfConversion.html">Minimal Conversion</a></li>
+            <li class="nav-item"><a class="nav-link active" href="GraphLibPdfRunner_Sequence.html">PdfRunner Diagram</a></li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <main class="container-fluid my-3">
+      <div class="app-shell">
+        <!-- Left aside -->
+        <aside class="sticky-aside">
+          <div class="card mb-3">
+            <div class="card-body">
+              <h5 class="card-title mb-2"><i class="bi bi-diagram-3 me-2"></i>Sequence Diagram</h5>
+              <p class="card-text mb-2">
+                This page documents the typical request flow through <b>GraphLibPdfRunner.cs</b>:
+                acquiring an app-only token, uploading to SharePoint, converting to PDF, downloading the result,
+                and cleanup/logging.
+              </p>
+              <div class="small text-muted">
+                Tip: Keep your runner async-first and treat SharePoint as a temporary working directory.
+              </div>
+            </div>
+          </div>
+
+          <div class="card mb-3">
+            <div class="card-body">
+              <h6 class="card-title mb-2"><i class="bi bi-pencil-square me-2"></i>How to Update</h6>
+              <ol class="mb-0 small">
+                <li>Open <code class="kbdlike">docs/GraphLibPdfRunner_Sequence.html</code></li>
+                <li>Edit the Mermaid diagram block</li>
+                <li>Refresh the browser</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-body">
+              <h6 class="card-title mb-2"><i class="bi bi-shield-lock me-2"></i>Assumptions</h6>
+              <ul class="mb-0 small">
+                <li>App-only auth via MSAL client credentials</li>
+                <li>Working folder: <b>_graphlib-temp</b> (or your configured temp folder)</li>
+                <li>Graph endpoints: Sites/Drives/Items for upload + download</li>
+                <li>Convert via SharePoint/Graph “convert to PDF” pattern</li>
+              </ul>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Main content -->
+        <section>
+          <div class="card">
+            <div class="card-body">
+              <h3 class="card-title mb-1">GraphLibPdfRunner.cs — Sequence</h3>
+              <p class="text-muted mb-4">
+                High-level view of the PDF conversion pipeline (upload → convert → download → cleanup).
+              </p>
+
+              <div class="mermaid-wrap">
+                <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Caller as Console/Service
+    participant Runner as GraphLibPdfRunner
+    participant Settings as GraphLibSettings
+    participant MSAL as MSAL (Client Credentials)
+    participant Graph as Microsoft Graph API
+    participant SP as SharePoint Site/Drive
+    participant Log as SQLite/Logger (optional)
+
+    Caller->>Runner: RunAsync(inputFilePath, outputPath?)
+    Runner->>Settings: Load/validate settings (tenant, clientId, secret, site, library)
+    Runner->>Log: (optional) Initialize logging
+    Runner->>MSAL: AcquireTokenForClient(scopes)
+    MSAL-->>Runner: access_token
+
+    Runner->>Graph: Resolve SiteId (SiteUrl)
+    Graph-->>Runner: siteId
+    Runner->>Graph: Resolve DriveId (LibraryName)
+    Graph-->>Runner: driveId
+
+    Runner->>Graph: Ensure temp folder exists (_graphlib-temp)
+    Graph-->>Runner: tempFolderItemId
+
+    Runner->>Graph: Upload file to temp folder (createUploadSession/PUT)
+    Graph-->>Runner: uploadedItemId
+
+    Note over Runner,Graph: Conversion step: request PDF rendition
+    Runner->>Graph: Convert item to PDF (download endpoint with format=pdf)
+    Graph-->>Runner: pdfBytes/stream
+
+    Runner->>Runner: Write PDF to disk (outputPath)
+    Runner->>Graph: (optional) Delete temp item(s)
+    Graph-->>Runner: 204 No Content
+
+    Runner->>Log: Record success (duration, sizes, ids)
+    Runner-->>Caller: Ok(result metadata)
+
+    alt Any failure (Forbidden/404/timeout)
+        Runner->>Log: Record error + context (siteId/driveId/itemId)
+        Runner-->>Caller: Fail(exception details)
+    end
+                </div>
+              </div>
+
+              <hr class="my-4" />
+
+              <h5>Notes (what to map to your actual code)</h5>
+              <ul class="mb-0">
+                <li>
+                  <b>Resolve SiteId / DriveId</b> maps to your “site lookup” and “document library drive” calls.
+                </li>
+                <li>
+                  <b>Ensure temp folder</b> maps to the “get-or-create folder” helper you call before upload.
+                </li>
+                <li>
+                  <b>Upload</b> can be simple PUT for small files or upload-session chunking for larger files.
+                </li>
+                <li>
+                  <b>Convert</b> is the “download as PDF” call (Graph/SharePoint conversion endpoint pattern).
+                </li>
+                <li>
+                  <b>Cleanup</b> depends on your Green/Yellow/Red retention logic (or immediate delete for temp content).
+                </li>
+              </ul>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Bootstrap 5 (JS) -->
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+      crossorigin="anonymous"
+    ></script>
+
+    <!-- Mermaid -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+      mermaid.initialize({
+        startOnLoad: true,
+        securityLevel: "strict"
+      });
+    </script>
+  </body>
+</html>
