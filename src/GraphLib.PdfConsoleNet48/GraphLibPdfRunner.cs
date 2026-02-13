@@ -1,6 +1,19 @@
 // File: GraphLibPdfRunner.cs
 // Target: .NET Framework 4.8
 //
+// What this class does (high level):
+//  1) Reads a local source file from disk
+//  2) Uploads it into a SharePoint document library folder (TempFolder)
+//  3) Uses Microsoft Graph to download the PDF rendition (?format=pdf)
+//  4) Saves the PDF back into the SAME SharePoint folder, next to the uploaded source
+//  5) ALSO saves the PDF locally, next to the original source file (optional; internal toggle)
+//
+// IMPORTANT DESIGN CHOICE:
+//  - You asked for “toggles set internally (inside GraphLibPdfRunner, but not externally)”.
+//    So the toggles below are private const values. Callers cannot change behavior.
+//    If you ever want to make them adjustable later, you can change const -> internal settable properties
+//    (but that would make them externally settable within the assembly).
+//
 // NuGet packages typically needed:
 // - Microsoft.Identity.Client (MSAL)
 // - Microsoft.Data.Sqlite (optional; only if you enable SQLite error logging)
@@ -10,37 +23,6 @@
 // - It’s async-first (no sync wrappers).
 // - It does NOT store credentials anywhere.
 // - Optional SQLite logging is silent + non-blocking: if it fails, GraphLib still runs.
-//
-// -----------------------------------------------------------------------------
-// USAGE EXAMPLE (minimal):
-// -----------------------------------------------------------------------------
-// var settings = new GraphLibSettings
-// {
-//     TenantId = "{tenant-guid}",
-//     ClientId = "{app-guid}",
-//     ClientSecret = "{secret}",
-//     SiteUrl = "https://contoso.sharepoint.com/sites/MySite",
-//     LibraryName = "Documents",
-//     TempFolder = "_graphlib-temp",
-//     ConflictBehavior = ConflictBehavior.Replace
-// };
-//
-// var runner = new GraphLibPdfRunner(settings, new GraphLibSqliteErrorLogger()); // logger optional
-// var result = await runner.ConvertFileToPdfAsync(@"C:\docs\example.docx", CancellationToken.None);
-//
-// if (result.Success)
-// {
-//     File.WriteAllBytes(@"C:\docs\example.pdf", result.PdfBytes);
-// }
-//
-// // Optional: surface lightweight logs without the DB pipeline.
-// foreach (var log in result.Logs) Console.WriteLine($"{log.Utc:u} {log.Level} {log.Stage} {log.Message}");
-//
-// -----------------------------------------------------------------------------
-// USAGE EXAMPLE (download-only, already have drive/item):
-// -----------------------------------------------------------------------------
-// var pdfBytes = await runner.DownloadPdfAsync(driveId, itemId, CancellationToken.None);
-// -----------------------------------------------------------------------------
 
 #nullable enable
 
@@ -66,12 +48,41 @@ namespace GraphLib.Core
 {
     /// <summary>
     /// GraphLib "PDF conversion only" runner:
-    /// - Resolve Site -> Resolve Drive -> Ensure Temp Folder -> Upload File -> Download PDF
+    /// - Resolve Site -> Resolve Drive -> Ensure Temp Folder -> Upload Source -> Download PDF
+    /// - Save PDF to SharePoint next to the uploaded source file
+    /// - Save PDF to local disk next to original input file
     ///
     /// This is the “core functions in one class” version intended for .NET Framework 4.8 apps.
     /// </summary>
     public sealed class GraphLibPdfRunner
     {
+        // ---------------------------------------------------------------------
+        // INTERNAL TOGGLES (NOT externally settable)
+        // ---------------------------------------------------------------------
+        //
+        // Junior-dev note:
+        //  These are "private const" values. That means:
+        //   - They are compile-time constants
+        //   - Callers of GraphLibPdfRunner cannot change them
+        //   - To change behavior, you edit GraphLibPdfRunner.cs and rebuild
+        //
+        // If you want to make these configurable later without exposing them publicly,
+        // you can switch to: "internal static bool ..." and set them in a static ctor
+        // or via an internal method.
+        //
+        private const bool SAVE_PDF_TO_SHAREPOINT = true; // Keep: https://SharePoint/.../file.pdf
+        private const bool SAVE_PDF_TO_LOCAL_DISK = true; // Also write: C:\path\to\file.pdf
+
+        // If true, we keep the uploaded source file in SharePoint.
+        // If false, you could delete it after PDF creation (not implemented here).
+        private const bool KEEP_SOURCE_IN_SHAREPOINT = true;
+
+        // Controls how we name the PDF in SharePoint and on disk.
+        // Example: "Report.docx" -> "Report.pdf"
+        private const bool USE_SOURCE_BASENAME_FOR_PDF = true;
+
+        // ---------------------------------------------------------------------
+
         private readonly GraphLibSettings _settings;
         private readonly IGraphLibErrorLogger? _errorLogger;
 
@@ -113,6 +124,10 @@ namespace GraphLib.Core
         /// <summary>
         /// Converts a local file to PDF using Microsoft Graph + SharePoint.
         /// Returns a GraphLibRunResult with PdfBytes and lightweight Logs.
+        ///
+        /// Also writes PDF to:
+        ///  - SharePoint (next to uploaded source) if SAVE_PDF_TO_SHAREPOINT
+        ///  - Local disk (next to original source file) if SAVE_PDF_TO_LOCAL_DISK
         /// </summary>
         public async Task<GraphLibRunResult> ConvertFileToPdfAsync(string filePath, CancellationToken ct)
         {
@@ -158,7 +173,16 @@ namespace GraphLib.Core
             string siteId;
             string driveId;
             string tempFolderPath = _settings.TempFolder ?? "_graphlib-temp";
-            string itemId;
+            string uploadedSourceItemId;
+
+            // Determine the PDF filename we will use in SharePoint + locally.
+            // Junior-dev note:
+            //  - "basename" = filename without extension (Report.docx -> Report)
+            //  - We then add ".pdf"
+            var sourceName = fi.Name; // e.g., "Report.docx"
+            var pdfFileName = USE_SOURCE_BASENAME_FOR_PDF
+                ? (Path.GetFileNameWithoutExtension(sourceName) + ".pdf")
+                : (sourceName + ".pdf"); // fallback (rarely wanted)
 
             try
             {
@@ -176,33 +200,76 @@ namespace GraphLib.Core
                 result.AddLog(LogLevel.Info, GraphStage.EnsureFolder, $"Ensuring temp folder '{tempFolderPath}'.");
                 await EnsureFolderAsync(driveId, tempFolderPath, clientRequestId, ct).ConfigureAwait(false);
 
-                // STAGE: Upload
-                result.AddLog(LogLevel.Info, GraphStage.Upload, $"Uploading '{fi.Name}' to '{tempFolderPath}'.");
-                itemId = await UploadToFolderAsync(
+                // STAGE: Upload source
+                result.AddLog(LogLevel.Info, GraphStage.Upload, $"Uploading '{sourceName}' to '{tempFolderPath}'.");
+                uploadedSourceItemId = await UploadToFolderAsync(
                     driveId,
                     tempFolderPath,
-                    fi.Name,
+                    sourceName,
                     inputBytes,
                     _settings.ConflictBehavior,
                     clientRequestId,
                     ct).ConfigureAwait(false);
 
-                result.AddLog(LogLevel.Info, GraphStage.Upload, $"Uploaded. itemId='{itemId}'.");
+                result.AddLog(LogLevel.Info, GraphStage.Upload, $"Uploaded source. itemId='{uploadedSourceItemId}'.");
 
-                // STAGE: Convert/Download PDF
+                // STAGE: Convert/Download PDF (bytes in memory)
                 result.AddLog(LogLevel.Info, GraphStage.Convert, "Downloading PDF bytes from Graph (?format=pdf).");
-                var pdfBytes = await DownloadPdfAsync(driveId, itemId, clientRequestId, ct).ConfigureAwait(false);
+                var pdfBytes = await DownloadPdfAsync(driveId, uploadedSourceItemId, clientRequestId, ct).ConfigureAwait(false);
 
                 result.PdfBytes = pdfBytes;
                 result.PdfBytesLength = pdfBytes.LongLength;
 
+                // STAGE: Save PDF back to SharePoint (next to source)
+                if (SAVE_PDF_TO_SHAREPOINT)
+                {
+                    result.AddLog(LogLevel.Info, GraphStage.SavePdfSharePoint, $"Saving PDF to SharePoint as '{pdfFileName}' in '{tempFolderPath}'.");
+                    var pdfItemId = await UploadToFolderAsync(
+                        driveId,
+                        tempFolderPath,
+                        pdfFileName,
+                        pdfBytes,
+                        ConflictBehavior.Replace, // PDF: typically replace
+                        clientRequestId,
+                        ct).ConfigureAwait(false);
+
+                    result.SharePointPdfItemId = pdfItemId;
+                    result.AddLog(LogLevel.Info, GraphStage.SavePdfSharePoint, $"Saved PDF to SharePoint. pdfItemId='{pdfItemId}'.");
+                }
+                else
+                {
+                    result.AddLog(LogLevel.Debug, GraphStage.SavePdfSharePoint, "SAVE_PDF_TO_SHAREPOINT is false; skipping SharePoint PDF save.");
+                }
+
+                // STAGE: Save PDF to local disk (next to original source)
+                if (SAVE_PDF_TO_LOCAL_DISK)
+                {
+                    var localPdfPath = Path.Combine(fi.DirectoryName ?? "", pdfFileName);
+
+                    result.AddLog(LogLevel.Info, GraphStage.SavePdfLocal, $"Saving PDF to local disk at '{localPdfPath}'.");
+                    await WriteAllBytesAsync(localPdfPath, pdfBytes, ct).ConfigureAwait(false);
+
+                    result.LocalPdfPath = localPdfPath;
+                    result.AddLog(LogLevel.Info, GraphStage.SavePdfLocal, "Saved PDF to local disk.");
+                }
+                else
+                {
+                    result.AddLog(LogLevel.Debug, GraphStage.SavePdfLocal, "SAVE_PDF_TO_LOCAL_DISK is false; skipping local PDF save.");
+                }
+
+                // Optional note about source retention
+                if (!KEEP_SOURCE_IN_SHAREPOINT)
+                {
+                    // Not implemented (you didn't ask for deletion), but here's where it would go.
+                    result.AddLog(LogLevel.Warn, GraphStage.Upload, "KEEP_SOURCE_IN_SHAREPOINT is false but delete logic is not implemented in this file.");
+                }
+
                 result.Success = true;
-                result.Summary = $"OK file='{fi.Name}' pdfBytes={result.PdfBytesLength}";
+                result.Summary = $"OK file='{sourceName}' pdfBytes={result.PdfBytesLength}";
                 return Finish(result, sw);
             }
             catch (GraphRequestException gre)
             {
-                // Graph-specific failure (status codes, request IDs, response body)
                 var msg = $"Graph request failed ({(int)gre.StatusCode}) during '{gre.Stage}'.";
                 return await FailAsync(result, gre.Stage, msg, sw, gre, ct).ConfigureAwait(false);
             }
@@ -259,8 +326,6 @@ namespace GraphLib.Core
             // /sites/{siteId}/drives
             var json = await GetJsonAsync($"sites/{siteId}/drives?$select=id,name", clientRequestId, GraphStage.ResolveDrive, ct).ConfigureAwait(false);
 
-            // super-light parse: find a drive with "name":"{libraryName}" and pick its "id".
-            // (We intentionally avoid heavy JSON libraries for a drop-in .NET 4.8 class.)
             var driveId = JsonFindDriveIdByName(json, libraryName);
             if (string.IsNullOrWhiteSpace(driveId))
                 throw new GraphRequestException(GraphStage.ResolveDrive, HttpStatusCode.NotFound, $"No drive found with name '{libraryName}'.", null, clientRequestId, json);
@@ -270,9 +335,6 @@ namespace GraphLib.Core
 
         private async Task EnsureFolderAsync(string driveId, string folderPath, string clientRequestId, CancellationToken ct)
         {
-            // We can "ensure" by attempting to create each segment under root.
-            // Graph: POST /drives/{driveId}/root/children
-            // Body: { "name": "segment", "folder": { }, "@microsoft.graph.conflictBehavior": "fail" }
             var segments = SplitFolder(folderPath);
             var currentItemPath = ""; // relative under root
 
@@ -431,6 +493,9 @@ namespace GraphLib.Core
             string? clientRequestId,
             string? responseBody)
         {
+            // Junior-dev note:
+            //  Graph responses often include useful request IDs in headers.
+            //  If you paste these IDs into logs/tickets, admins can trace the call.
             var requestId = TryGetHeader(resp, "request-id") ?? TryGetHeader(resp, "x-ms-ags-diagnostic");
             return new GraphRequestException(stage, statusCode, message, requestId, clientRequestId, responseBody);
         }
@@ -448,7 +513,7 @@ namespace GraphLib.Core
             try
             {
                 // In .NET 4.8, ReadAsStringAsync() doesn’t accept CancellationToken.
-                // We’ll just read it safely; ct cancellation is already honored for SendAsync.
+                // Cancellation is already honored for SendAsync; this is best-effort.
                 return await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
             }
             catch
@@ -459,9 +524,14 @@ namespace GraphLib.Core
 
         private static Task<byte[]> ReadAllBytesAsync(string path, CancellationToken ct)
         {
-            // .NET Framework 4.8 has File.ReadAllBytesAsync in newer framework updates,
-            // but to be safe for “plain” net48, use Task.Run.
+            // net48 safe approach
             return Task.Run(() => File.ReadAllBytes(path), ct);
+        }
+
+        private static Task WriteAllBytesAsync(string path, byte[] bytes, CancellationToken ct)
+        {
+            // net48 safe approach
+            return Task.Run(() => File.WriteAllBytes(path, bytes), ct);
         }
 
         // -----------------------------
@@ -474,7 +544,6 @@ namespace GraphLib.Core
             r.Elapsed = sw.Elapsed;
             r.FinishedUtc = DateTimeOffset.UtcNow;
             r.AddLog(LogLevel.Info, GraphStage.Done, $"Done in {(int)r.Elapsed.TotalMilliseconds}ms.");
-
             return r;
         }
 
@@ -513,7 +582,12 @@ namespace GraphLib.Core
             return r;
         }
 
-        private async Task SafeLogErrorAsync(string runId, string stage, string message, Exception ex, CancellationToken ct,
+        private async Task SafeLogErrorAsync(
+            string runId,
+            string stage,
+            string message,
+            Exception ex,
+            CancellationToken ct,
             [CallerFilePath] string callerFile = "",
             [CallerMemberName] string callerMember = "")
         {
@@ -545,8 +619,6 @@ namespace GraphLib.Core
         {
             if (string.IsNullOrWhiteSpace(json) || string.IsNullOrWhiteSpace(propertyName)) return null;
 
-            // naive: find  "propertyName":"value"
-            // good enough for Graph "id" and similar shallow fields.
             var needle = "\"" + propertyName + "\"";
             var i = json.IndexOf(needle, StringComparison.OrdinalIgnoreCase);
             if (i < 0) return null;
@@ -575,25 +647,20 @@ namespace GraphLib.Core
         {
             if (string.IsNullOrWhiteSpace(json) || string.IsNullOrWhiteSpace(driveName)) return null;
 
-            // Very lightweight approach:
-            // Find occurrences of "name":"{driveName}" and then backtrack/forward to pick nearest "id":"..."
             var target = "\"name\":\"" + JsonEscape(driveName) + "\"";
             var idx = json.IndexOf(target, StringComparison.OrdinalIgnoreCase);
             if (idx < 0) return null;
 
-            // Search backwards a bit for "id":"..."
             var windowStart = Math.Max(0, idx - 500);
             var windowEnd = Math.Min(json.Length, idx + 500);
             var window = json.Substring(windowStart, windowEnd - windowStart);
 
-            // Prefer id before name (Graph usually returns id then name, but not guaranteed)
             var id = JsonPickString(window, "id");
             return id;
         }
 
         private static string UnescapeJsonString(string s)
         {
-            // Enough for Graph ids and simple strings.
             return s.Replace("\\\"", "\"").Replace("\\\\", "\\").Replace("\\/", "/");
         }
 
@@ -640,7 +707,6 @@ namespace GraphLib.Core
 
         private static string EscapePath(string path)
         {
-            // Graph path segments should be URI escaped but keep slashes.
             if (string.IsNullOrWhiteSpace(path)) return "";
             var segments = path.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
             var sb = new StringBuilder();
@@ -666,6 +732,11 @@ namespace GraphLib.Core
         public const string EnsureFolder = "ensure_folder";
         public const string Upload = "upload";
         public const string Convert = "convert";
+
+        // New stages for the new behavior
+        public const string SavePdfSharePoint = "save_pdf_sharepoint";
+        public const string SavePdfLocal = "save_pdf_local";
+
         public const string Done = "done";
         public const string Unknown = "unknown";
     }
@@ -713,7 +784,7 @@ namespace GraphLib.Core
         public string ClientId { get; set; } = "";
         public string ClientSecret { get; set; } = "";
 
-        // Upload behavior
+        // Upload behavior (source upload)
         public ConflictBehavior ConflictBehavior { get; set; } = ConflictBehavior.Replace;
     }
 
@@ -741,6 +812,12 @@ namespace GraphLib.Core
         // Keep both raw bytes and length; some callers prefer one or the other.
         public byte[] PdfBytes { get; set; } = Array.Empty<byte>();
         public long PdfBytesLength { get; set; }
+
+        // New: where we wrote the PDF locally (if enabled)
+        public string? LocalPdfPath { get; set; }
+
+        // New: SharePoint item id for the generated PDF (if enabled)
+        public string? SharePointPdfItemId { get; set; }
 
         /// <summary>
         /// Lightweight in-memory logs so callers can surface what happened
@@ -816,7 +893,6 @@ namespace GraphLib.Core
     /// </summary>
     public sealed class GraphLibSqliteErrorLogger : IGraphLibErrorLogger
     {
-        // You can change this path if you want it next to the app, but LocalAppData tends to be safer.
         private readonly string _dbPath;
 
         public GraphLibSqliteErrorLogger(string? dbPath = null)
@@ -835,7 +911,6 @@ namespace GraphLib.Core
             string callerMemberName,
             CancellationToken ct)
         {
-            // IMPORTANT: This logger must never interfere with normal execution.
             try
             {
                 EnsureFolderExists(Path.GetDirectoryName(_dbPath));
@@ -849,7 +924,6 @@ namespace GraphLib.Core
                 {
                     await conn.OpenAsync(ct).ConfigureAwait(false);
 
-                    // Create table (idempotent)
                     using (var cmd = conn.CreateCommand())
                     {
                         cmd.CommandText =
@@ -884,7 +958,7 @@ VALUES
                         cmd.Parameters.AddWithValue("$Message", message ?? "");
                         cmd.Parameters.AddWithValue("$ExceptionType", exception.GetType().FullName ?? exception.GetType().Name);
                         cmd.Parameters.AddWithValue("$ExceptionMessage", exception.Message ?? "");
-                        cmd.Parameters.AddWithValue("$StackTrace", exception.ToString()); // includes stack trace
+                        cmd.Parameters.AddWithValue("$StackTrace", exception.ToString());
                         cmd.Parameters.AddWithValue("$CallerFile", callerFilePath ?? "");
                         cmd.Parameters.AddWithValue("$CallerMember", callerMemberName ?? "");
 
@@ -893,7 +967,6 @@ VALUES
                 }
                 */
 
-                // If you uncomment the SQLite code above, remove this line:
                 await Task.CompletedTask.ConfigureAwait(false);
             }
             catch
