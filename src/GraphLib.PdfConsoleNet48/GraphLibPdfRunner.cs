@@ -1,30 +1,20 @@
 // File: GraphLibPdfRunner.cs
-// Target: .NET Framework 4.8
+// Target: .NET Framework 4.8 (C# 7.3)
 //
-// What this class does (high level):
-//  1) Reads a local source file from disk
-//  2) Uploads it into a SharePoint document library folder (TempFolder)
-//  3) Uses Microsoft Graph to download the PDF rendition (?format=pdf)
-//  4) Saves the PDF back into the SAME SharePoint folder, next to the uploaded source
-//  5) ALSO saves the PDF locally, next to the original source file (optional; internal toggle)
+// CHANGE NOTES (why this rewrite exists):
+//  1) C# 7.3 does NOT support nullable reference types, so:
+//      - removed "#nullable enable"
+//      - removed "string?" / "HttpClient?" / "IGraphLibErrorLogger?" usage
+//      - use classic null checks + defensive coding instead
+//  2) SQLite is NOT implemented at this level:
+//      - removed the SQLite logger class and the logger interface entirely
+//  3) Added a "Report" object that can be serialized to JSON easily:
+//      - GraphLibRunResult now includes a GraphLibReport property
+//      - Report includes toggles, file paths, sharepoint IDs, metrics, and a few IDs for troubleshooting
 //
-// IMPORTANT DESIGN CHOICE:
-//  - You asked for “toggles set internally (inside GraphLibPdfRunner, but not externally)”.
-//    So the toggles below are private const values. Callers cannot change behavior.
-//    If you ever want to make them adjustable later, you can change const -> internal settable properties
-//    (but that would make them externally settable within the assembly).
-//
-// NuGet packages typically needed:
-// - Microsoft.Identity.Client (MSAL)
-// - Microsoft.Data.Sqlite (optional; only if you enable SQLite error logging)
-//
-// Notes:
-// - This is a "single-class" runner for the PDF-conversion slice of GraphLib.
-// - It’s async-first (no sync wrappers).
-// - It does NOT store credentials anywhere.
-// - Optional SQLite logging is silent + non-blocking: if it fails, GraphLib still runs.
-
-#nullable enable
+// IMPORTANT DESIGN CHOICE (your request):
+//  - Toggles are INTERNAL ONLY (not externally settable).
+//    They are private const values in this class.
 
 using System;
 using System.Collections.Generic;
@@ -41,50 +31,33 @@ using System.Threading.Tasks;
 // MSAL
 using Microsoft.Identity.Client;
 
-// Optional SQLite logger package:
-// using Microsoft.Data.Sqlite;
-
 namespace GraphLib.Core
 {
     /// <summary>
     /// GraphLib "PDF conversion only" runner:
-    /// - Resolve Site -> Resolve Drive -> Ensure Temp Folder -> Upload Source -> Download PDF
-    /// - Save PDF to SharePoint next to the uploaded source file
-    /// - Save PDF to local disk next to original input file
+    ///  - Resolve Site -> Resolve Drive -> Ensure Temp Folder -> Upload Source -> Download PDF bytes
+    ///  - Save PDF to SharePoint next to uploaded source (optional - internal toggle)
+    ///  - Save PDF to local disk next to original source (optional - internal toggle)
     ///
-    /// This is the “core functions in one class” version intended for .NET Framework 4.8 apps.
+    /// Intended for .NET Framework 4.8 projects using C# 7.3.
     /// </summary>
     public sealed class GraphLibPdfRunner
     {
         // ---------------------------------------------------------------------
         // INTERNAL TOGGLES (NOT externally settable)
         // ---------------------------------------------------------------------
-        //
-        // Junior-dev note:
-        //  These are "private const" values. That means:
-        //   - They are compile-time constants
-        //   - Callers of GraphLibPdfRunner cannot change them
-        //   - To change behavior, you edit GraphLibPdfRunner.cs and rebuild
-        //
-        // If you want to make these configurable later without exposing them publicly,
-        // you can switch to: "internal static bool ..." and set them in a static ctor
-        // or via an internal method.
-        //
-        private const bool SAVE_PDF_TO_SHAREPOINT = true; // Keep: https://SharePoint/.../file.pdf
-        private const bool SAVE_PDF_TO_LOCAL_DISK = true; // Also write: C:\path\to\file.pdf
+        private const bool SAVE_PDF_TO_SHAREPOINT = true;
+        private const bool SAVE_PDF_TO_LOCAL_DISK = true;
 
-        // If true, we keep the uploaded source file in SharePoint.
-        // If false, you could delete it after PDF creation (not implemented here).
+        // If you later want to delete the uploaded source file after conversion, you can implement it.
         private const bool KEEP_SOURCE_IN_SHAREPOINT = true;
 
-        // Controls how we name the PDF in SharePoint and on disk.
-        // Example: "Report.docx" -> "Report.pdf"
+        // Determines PDF naming: "Report.docx" -> "Report.pdf"
         private const bool USE_SOURCE_BASENAME_FOR_PDF = true;
 
         // ---------------------------------------------------------------------
 
         private readonly GraphLibSettings _settings;
-        private readonly IGraphLibErrorLogger? _errorLogger;
 
         // HttpClient should be reused; allow injection for host apps.
         private readonly HttpClient _http;
@@ -94,21 +67,17 @@ namespace GraphLib.Core
         /// Create a PDF runner with required settings.
         /// </summary>
         /// <param name="settings">Graph + SharePoint settings (app-only).</param>
-        /// <param name="errorLogger">
-        /// Optional silent logger (ex: SQLite). Never throws outward; failures are swallowed.
-        /// </param>
         /// <param name="httpClient">
-        /// Optional HttpClient. If null, runner creates its own HttpClient (recommended: inject a singleton).
+        /// Optional HttpClient. If null, runner creates its own HttpClient
+        /// (recommended: inject a singleton in real apps).
         /// </param>
         public GraphLibPdfRunner(
             GraphLibSettings settings,
-            IGraphLibErrorLogger? errorLogger = null,
-            HttpClient? httpClient = null)
+            HttpClient httpClient = null)
         {
             if (settings == null) throw new ArgumentNullException(nameof(settings));
 
             _settings = settings;
-            _errorLogger = errorLogger;
 
             _http = httpClient ?? new HttpClient();
             if (_http.BaseAddress == null)
@@ -123,11 +92,12 @@ namespace GraphLib.Core
 
         /// <summary>
         /// Converts a local file to PDF using Microsoft Graph + SharePoint.
-        /// Returns a GraphLibRunResult with PdfBytes and lightweight Logs.
-        ///
-        /// Also writes PDF to:
-        ///  - SharePoint (next to uploaded source) if SAVE_PDF_TO_SHAREPOINT
-        ///  - Local disk (next to original source file) if SAVE_PDF_TO_LOCAL_DISK
+        /// Returns a GraphLibRunResult with:
+        ///  - PdfBytes (in memory)
+        ///  - LocalPdfPath (if enabled)
+        ///  - SharePointPdfItemId (if enabled)
+        ///  - Report (JSON-friendly summary object)
+        ///  - Logs (in-memory timeline)
         /// </summary>
         public async Task<GraphLibRunResult> ConvertFileToPdfAsync(string filePath, CancellationToken ct)
         {
@@ -136,6 +106,9 @@ namespace GraphLib.Core
                 RunId = Guid.NewGuid().ToString("D"),
                 StartedUtc = DateTimeOffset.UtcNow
             };
+
+            // Report is created immediately so we can populate it even on early failures.
+            result.Report = GraphLibReport.CreateDefault();
 
             var sw = Stopwatch.StartNew();
 
@@ -155,12 +128,19 @@ namespace GraphLib.Core
             if (!fi.Exists)
                 return FailEarly(result, GraphStage.ValidateInput, "Input file does not exist.", sw);
 
+            // Populate report with local path info early
+            result.Report.InputFilePath = fi.FullName;
+            result.Report.InputFileName = fi.Name;
+            result.Report.InputFileBytes = 0; // set after read
+
             byte[] inputBytes;
             try
             {
-                result.AddLog(LogLevel.Info, GraphStage.ReadInput, $"Reading input file '{fi.FullName}'.");
+                result.AddLog(LogLevel.Info, GraphStage.ReadInput, "Reading input file from disk.");
                 inputBytes = await ReadAllBytesAsync(fi.FullName, ct).ConfigureAwait(false);
+
                 result.InputBytes = inputBytes.LongLength;
+                result.Report.InputFileBytes = inputBytes.LongLength;
             }
             catch (Exception ex)
             {
@@ -169,39 +149,55 @@ namespace GraphLib.Core
 
             // One client-request-id across the run helps correlate Graph calls.
             var clientRequestId = Guid.NewGuid().ToString("D");
+            result.Report.ClientRequestId = clientRequestId;
 
             string siteId;
             string driveId;
-            string tempFolderPath = _settings.TempFolder ?? "_graphlib-temp";
+            string tempFolderPath = string.IsNullOrWhiteSpace(_settings.TempFolder) ? "_graphlib-temp" : _settings.TempFolder;
             string uploadedSourceItemId;
 
             // Determine the PDF filename we will use in SharePoint + locally.
-            // Junior-dev note:
-            //  - "basename" = filename without extension (Report.docx -> Report)
-            //  - We then add ".pdf"
-            var sourceName = fi.Name; // e.g., "Report.docx"
+            var sourceName = fi.Name;
             var pdfFileName = USE_SOURCE_BASENAME_FOR_PDF
                 ? (Path.GetFileNameWithoutExtension(sourceName) + ".pdf")
-                : (sourceName + ".pdf"); // fallback (rarely wanted)
+                : (sourceName + ".pdf");
+
+            // Pre-compute local PDF path for the report (even if we skip writing it)
+            var localPdfPath = Path.Combine(fi.DirectoryName ?? "", pdfFileName);
+            result.Report.OutputPdfFileName = pdfFileName;
+            result.Report.OutputLocalPdfPath = localPdfPath;
+
+            // Toggles captured into report for troubleshooting
+            result.Report.SavePdfToSharePoint = SAVE_PDF_TO_SHAREPOINT;
+            result.Report.SavePdfToLocalDisk = SAVE_PDF_TO_LOCAL_DISK;
+            result.Report.KeepSourceInSharePoint = KEEP_SOURCE_IN_SHAREPOINT;
 
             try
             {
                 // STAGE: Resolve Site
-                result.AddLog(LogLevel.Info, GraphStage.ResolveSite, $"Resolving site from '{_settings.SiteUrl}'.");
+                result.AddLog(LogLevel.Info, GraphStage.ResolveSite, "Resolving SharePoint siteId.");
                 siteId = await ResolveSiteIdAsync(_settings.SiteUrl, clientRequestId, ct).ConfigureAwait(false);
-                result.AddLog(LogLevel.Info, GraphStage.ResolveSite, $"Resolved siteId='{siteId}'.");
+                result.AddLog(LogLevel.Info, GraphStage.ResolveSite, "Resolved siteId.");
 
-                // STAGE: Resolve Drive
-                result.AddLog(LogLevel.Info, GraphStage.ResolveDrive, $"Resolving drive (library) '{_settings.LibraryName}'.");
+                result.Report.SiteId = siteId;
+                result.Report.SiteUrl = _settings.SiteUrl;
+
+                // STAGE: Resolve Drive (document library)
+                result.AddLog(LogLevel.Info, GraphStage.ResolveDrive, "Resolving driveId for document library.");
                 driveId = await ResolveDriveIdAsync(siteId, _settings.LibraryName, clientRequestId, ct).ConfigureAwait(false);
-                result.AddLog(LogLevel.Info, GraphStage.ResolveDrive, $"Resolved driveId='{driveId}'.");
+                result.AddLog(LogLevel.Info, GraphStage.ResolveDrive, "Resolved driveId.");
 
-                // STAGE: Ensure Temp Folder
-                result.AddLog(LogLevel.Info, GraphStage.EnsureFolder, $"Ensuring temp folder '{tempFolderPath}'.");
+                result.Report.DriveId = driveId;
+                result.Report.LibraryName = _settings.LibraryName;
+
+                // STAGE: Ensure Temp Folder exists
+                result.AddLog(LogLevel.Info, GraphStage.EnsureFolder, "Ensuring temp folder exists in SharePoint.");
                 await EnsureFolderAsync(driveId, tempFolderPath, clientRequestId, ct).ConfigureAwait(false);
 
-                // STAGE: Upload source
-                result.AddLog(LogLevel.Info, GraphStage.Upload, $"Uploading '{sourceName}' to '{tempFolderPath}'.");
+                result.Report.TempFolder = tempFolderPath;
+
+                // STAGE: Upload source file
+                result.AddLog(LogLevel.Info, GraphStage.Upload, "Uploading source file to SharePoint temp folder.");
                 uploadedSourceItemId = await UploadToFolderAsync(
                     driveId,
                     tempFolderPath,
@@ -211,70 +207,93 @@ namespace GraphLib.Core
                     clientRequestId,
                     ct).ConfigureAwait(false);
 
-                result.AddLog(LogLevel.Info, GraphStage.Upload, $"Uploaded source. itemId='{uploadedSourceItemId}'.");
+                result.AddLog(LogLevel.Info, GraphStage.Upload, "Uploaded source file.");
 
-                // STAGE: Convert/Download PDF (bytes in memory)
+                result.Report.SharePointSourceItemId = uploadedSourceItemId;
+                result.Report.SharePointSourceFileName = sourceName;
+
+                // STAGE: Convert/Download PDF bytes
                 result.AddLog(LogLevel.Info, GraphStage.Convert, "Downloading PDF bytes from Graph (?format=pdf).");
                 var pdfBytes = await DownloadPdfAsync(driveId, uploadedSourceItemId, clientRequestId, ct).ConfigureAwait(false);
 
                 result.PdfBytes = pdfBytes;
                 result.PdfBytesLength = pdfBytes.LongLength;
+                result.Report.OutputPdfBytes = pdfBytes.LongLength;
 
-                // STAGE: Save PDF back to SharePoint (next to source)
+                // STAGE: Save PDF to SharePoint (next to source)
                 if (SAVE_PDF_TO_SHAREPOINT)
                 {
-                    result.AddLog(LogLevel.Info, GraphStage.SavePdfSharePoint, $"Saving PDF to SharePoint as '{pdfFileName}' in '{tempFolderPath}'.");
+                    result.AddLog(LogLevel.Info, GraphStage.SavePdfSharePoint, "Saving PDF to SharePoint (same folder as source).");
+
                     var pdfItemId = await UploadToFolderAsync(
                         driveId,
                         tempFolderPath,
                         pdfFileName,
                         pdfBytes,
-                        ConflictBehavior.Replace, // PDF: typically replace
+                        ConflictBehavior.Replace,
                         clientRequestId,
                         ct).ConfigureAwait(false);
 
                     result.SharePointPdfItemId = pdfItemId;
-                    result.AddLog(LogLevel.Info, GraphStage.SavePdfSharePoint, $"Saved PDF to SharePoint. pdfItemId='{pdfItemId}'.");
+                    result.Report.SharePointPdfItemId = pdfItemId;
                 }
                 else
                 {
-                    result.AddLog(LogLevel.Debug, GraphStage.SavePdfSharePoint, "SAVE_PDF_TO_SHAREPOINT is false; skipping SharePoint PDF save.");
+                    result.AddLog(LogLevel.Debug, GraphStage.SavePdfSharePoint, "Skipping SharePoint PDF save (toggle off).");
                 }
 
-                // STAGE: Save PDF to local disk (next to original source)
+                // STAGE: Save PDF to local disk (next to original)
                 if (SAVE_PDF_TO_LOCAL_DISK)
                 {
-                    var localPdfPath = Path.Combine(fi.DirectoryName ?? "", pdfFileName);
-
-                    result.AddLog(LogLevel.Info, GraphStage.SavePdfLocal, $"Saving PDF to local disk at '{localPdfPath}'.");
+                    result.AddLog(LogLevel.Info, GraphStage.SavePdfLocal, "Saving PDF to local disk (next to original source).");
                     await WriteAllBytesAsync(localPdfPath, pdfBytes, ct).ConfigureAwait(false);
 
                     result.LocalPdfPath = localPdfPath;
-                    result.AddLog(LogLevel.Info, GraphStage.SavePdfLocal, "Saved PDF to local disk.");
+                    result.Report.OutputLocalPdfWritten = true;
                 }
                 else
                 {
-                    result.AddLog(LogLevel.Debug, GraphStage.SavePdfLocal, "SAVE_PDF_TO_LOCAL_DISK is false; skipping local PDF save.");
+                    result.AddLog(LogLevel.Debug, GraphStage.SavePdfLocal, "Skipping local PDF save (toggle off).");
+                    result.Report.OutputLocalPdfWritten = false;
                 }
 
-                // Optional note about source retention
+                // (Optional) If you ever implement deletion:
                 if (!KEEP_SOURCE_IN_SHAREPOINT)
                 {
-                    // Not implemented (you didn't ask for deletion), but here's where it would go.
-                    result.AddLog(LogLevel.Warn, GraphStage.Upload, "KEEP_SOURCE_IN_SHAREPOINT is false but delete logic is not implemented in this file.");
+                    // Not implemented, but report the intent so it’s not a silent surprise.
+                    result.AddLog(LogLevel.Warn, GraphStage.Upload, "KEEP_SOURCE_IN_SHAREPOINT is false but delete logic is not implemented.");
                 }
 
                 result.Success = true;
-                result.Summary = $"OK file='{sourceName}' pdfBytes={result.PdfBytesLength}";
+                result.Summary = "OK file='" + sourceName + "' pdfBytes=" + result.PdfBytesLength;
+
                 return Finish(result, sw);
             }
             catch (GraphRequestException gre)
             {
-                var msg = $"Graph request failed ({(int)gre.StatusCode}) during '{gre.Stage}'.";
+                // Graph-specific failure (status codes, request IDs, response body)
+                var msg = "Graph request failed (" + (int)gre.StatusCode + ") during '" + gre.Stage + "'.";
+
+                // Populate report troubleshooting info
+                if (result.Report != null)
+                {
+                    result.Report.FailureStage = gre.Stage;
+                    result.Report.HttpStatus = (int)gre.StatusCode;
+                    result.Report.GraphRequestId = gre.RequestId;
+                    result.Report.GraphResponseBody = gre.ResponseBody;
+                }
+
                 return await FailAsync(result, gre.Stage, msg, sw, gre, ct).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
+                if (result.Report != null)
+                {
+                    result.Report.FailureStage = GraphStage.Unknown;
+                    result.Report.ExceptionType = ex.GetType().FullName;
+                    result.Report.ExceptionMessage = ex.Message;
+                }
+
                 return await FailAsync(result, GraphStage.Unknown, "Unhandled failure during conversion.", sw, ex, ct).ConfigureAwait(false);
             }
         }
@@ -283,7 +302,9 @@ namespace GraphLib.Core
         /// Download PDF bytes from Graph for an existing drive/item.
         /// </summary>
         public Task<byte[]> DownloadPdfAsync(string driveId, string itemId, CancellationToken ct)
-            => DownloadPdfAsync(driveId, itemId, clientRequestId: null, ct);
+        {
+            return DownloadPdfAsync(driveId, itemId, null, ct);
+        }
 
         // -----------------------------
         // Core Graph Steps (private)
@@ -294,25 +315,24 @@ namespace GraphLib.Core
             if (string.IsNullOrWhiteSpace(siteUrl))
                 throw new GraphRequestException(GraphStage.ResolveSite, HttpStatusCode.BadRequest, "SiteUrl is empty.", null, null, null);
 
-            if (!Uri.TryCreate(siteUrl, UriKind.Absolute, out var uri))
+            Uri uri;
+            if (!Uri.TryCreate(siteUrl, UriKind.Absolute, out uri))
                 throw new GraphRequestException(GraphStage.ResolveSite, HttpStatusCode.BadRequest, "SiteUrl is not a valid absolute URL.", null, null, null);
 
             // Graph syntax: /sites/{hostname}:/{server-relative-path}
-            // Example: https://contoso.sharepoint.com/sites/MySite
-            // => /sites/contoso.sharepoint.com:/sites/MySite?$select=id
             var host = uri.Host;
             var serverRelative = uri.AbsolutePath; // includes leading "/"
             if (string.IsNullOrWhiteSpace(serverRelative) || serverRelative == "/")
                 serverRelative = "/"; // root site
 
-            var path = $"sites/{host}:/{serverRelative.TrimStart('/')}?$select=id";
+            var path = "sites/" + host + ":/" + serverRelative.TrimStart('/') + "?$select=id";
 
             var json = await GetJsonAsync(path, clientRequestId, GraphStage.ResolveSite, ct).ConfigureAwait(false);
             var id = JsonPickString(json, "id");
             if (string.IsNullOrWhiteSpace(id))
                 throw new GraphRequestException(GraphStage.ResolveSite, HttpStatusCode.NotFound, "Graph did not return a site id.", null, clientRequestId, json);
 
-            return id!;
+            return id;
         }
 
         private async Task<string> ResolveDriveIdAsync(string siteId, string libraryName, string clientRequestId, CancellationToken ct)
@@ -324,13 +344,13 @@ namespace GraphLib.Core
                 throw new GraphRequestException(GraphStage.ResolveDrive, HttpStatusCode.BadRequest, "LibraryName is empty.", null, clientRequestId, null);
 
             // /sites/{siteId}/drives
-            var json = await GetJsonAsync($"sites/{siteId}/drives?$select=id,name", clientRequestId, GraphStage.ResolveDrive, ct).ConfigureAwait(false);
+            var json = await GetJsonAsync("sites/" + siteId + "/drives?$select=id,name", clientRequestId, GraphStage.ResolveDrive, ct).ConfigureAwait(false);
 
             var driveId = JsonFindDriveIdByName(json, libraryName);
             if (string.IsNullOrWhiteSpace(driveId))
-                throw new GraphRequestException(GraphStage.ResolveDrive, HttpStatusCode.NotFound, $"No drive found with name '{libraryName}'.", null, clientRequestId, json);
+                throw new GraphRequestException(GraphStage.ResolveDrive, HttpStatusCode.NotFound, "No drive found with name '" + libraryName + "'.", null, clientRequestId, json);
 
-            return driveId!;
+            return driveId;
         }
 
         private async Task EnsureFolderAsync(string driveId, string folderPath, string clientRequestId, CancellationToken ct)
@@ -345,18 +365,18 @@ namespace GraphLib.Core
                 currentItemPath = CombineGraphPath(currentItemPath, seg);
 
                 // Check if exists via GET /root:/{path}
-                var checkUrl = $"drives/{driveId}/root:/{EscapePath(currentItemPath)}?$select=id,name,folder";
+                var checkUrl = "drives/" + driveId + "/root:/" + EscapePath(currentItemPath) + "?$select=id,name,folder";
                 var exists = await TryGetAsync(checkUrl, clientRequestId, GraphStage.EnsureFolder, ct).ConfigureAwait(false);
                 if (exists.Exists) continue;
 
                 // Create folder under its parent
                 var parentPath = ParentPath(currentItemPath);
                 var createUnder = string.IsNullOrEmpty(parentPath)
-                    ? $"drives/{driveId}/root/children"
-                    : $"drives/{driveId}/root:/{EscapePath(parentPath)}:/children";
+                    ? "drives/" + driveId + "/root/children"
+                    : "drives/" + driveId + "/root:/" + EscapePath(parentPath) + ":/children";
 
                 var body = "{"
-                         + $"\"name\":\"{JsonEscape(seg)}\","
+                         + "\"name\":\"" + JsonEscape(seg) + "\","
                          + "\"folder\":{},"
                          + "\"@microsoft.graph.conflictBehavior\":\"fail\""
                          + "}";
@@ -379,7 +399,10 @@ namespace GraphLib.Core
             var conflictValue = conflict.ToGraphValue();
             var rel = CombineGraphPath(folderPath, fileName);
 
-            var url = $"drives/{driveId}/root:/{EscapePath(rel)}:/content?@microsoft.graph.conflictBehavior={Uri.EscapeDataString(conflictValue)}";
+            var url =
+                "drives/" + driveId +
+                "/root:/" + EscapePath(rel) +
+                ":/content?@microsoft.graph.conflictBehavior=" + Uri.EscapeDataString(conflictValue);
 
             using (var req = new HttpRequestMessage(HttpMethod.Put, url))
             {
@@ -391,21 +414,21 @@ namespace GraphLib.Core
                 if (string.IsNullOrWhiteSpace(itemId))
                     throw new GraphRequestException(GraphStage.Upload, HttpStatusCode.InternalServerError, "Upload succeeded but item id was missing.", null, clientRequestId, respJson);
 
-                return itemId!;
+                return itemId;
             }
         }
 
-        private async Task<byte[]> DownloadPdfAsync(string driveId, string itemId, string? clientRequestId, CancellationToken ct)
+        private async Task<byte[]> DownloadPdfAsync(string driveId, string itemId, string clientRequestId, CancellationToken ct)
         {
             // GET /drives/{driveId}/items/{itemId}/content?format=pdf
-            var url = $"drives/{driveId}/items/{itemId}/content?format=pdf";
+            var url = "drives/" + driveId + "/items/" + itemId + "/content?format=pdf";
 
             using (var req = new HttpRequestMessage(HttpMethod.Get, url))
             {
                 var resp = await SendAsync(req, clientRequestId, ct).ConfigureAwait(false);
                 if (!resp.IsSuccessStatusCode)
                 {
-                    var body = await ReadStringSafeAsync(resp, ct).ConfigureAwait(false);
+                    var body = await ReadStringSafeAsync(resp).ConfigureAwait(false);
                     throw CreateGraphError(GraphStage.Convert, resp.StatusCode, "PDF download failed.", resp, clientRequestId, body);
                 }
 
@@ -417,7 +440,7 @@ namespace GraphLib.Core
         // HTTP / Auth helpers
         // -----------------------------
 
-        private async Task<HttpResponseMessage> SendAsync(HttpRequestMessage req, string? clientRequestId, CancellationToken ct)
+        private async Task<HttpResponseMessage> SendAsync(HttpRequestMessage req, string clientRequestId, CancellationToken ct)
         {
             var token = await AcquireTokenAsync(ct).ConfigureAwait(false);
             req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -449,18 +472,18 @@ namespace GraphLib.Core
             }
         }
 
-        private async Task<(bool Exists, string? Body)> TryGetAsync(string relativeUrl, string clientRequestId, string stage, CancellationToken ct)
+        private async Task<TryGetResult> TryGetAsync(string relativeUrl, string clientRequestId, string stage, CancellationToken ct)
         {
             using (var req = new HttpRequestMessage(HttpMethod.Get, relativeUrl))
             {
                 var resp = await SendAsync(req, clientRequestId, ct).ConfigureAwait(false);
                 if (resp.IsSuccessStatusCode)
-                    return (true, await ReadStringSafeAsync(resp, ct).ConfigureAwait(false));
+                    return new TryGetResult(true, await ReadStringSafeAsync(resp).ConfigureAwait(false));
 
                 if (resp.StatusCode == HttpStatusCode.NotFound)
-                    return (false, null);
+                    return new TryGetResult(false, null);
 
-                var body = await ReadStringSafeAsync(resp, ct).ConfigureAwait(false);
+                var body = await ReadStringSafeAsync(resp).ConfigureAwait(false);
                 throw CreateGraphError(stage, resp.StatusCode, "GET failed.", resp, clientRequestId, body);
             }
         }
@@ -477,7 +500,7 @@ namespace GraphLib.Core
         private async Task<string> SendForJsonAsync(HttpRequestMessage req, string clientRequestId, string stage, CancellationToken ct)
         {
             var resp = await SendAsync(req, clientRequestId, ct).ConfigureAwait(false);
-            var body = await ReadStringSafeAsync(resp, ct).ConfigureAwait(false);
+            var body = await ReadStringSafeAsync(resp).ConfigureAwait(false);
 
             if (!resp.IsSuccessStatusCode)
                 throw CreateGraphError(stage, resp.StatusCode, "Graph request failed.", resp, clientRequestId, body);
@@ -489,49 +512,46 @@ namespace GraphLib.Core
             string stage,
             HttpStatusCode statusCode,
             string message,
-            HttpResponseMessage? resp,
-            string? clientRequestId,
-            string? responseBody)
+            HttpResponseMessage resp,
+            string clientRequestId,
+            string responseBody)
         {
-            // Junior-dev note:
-            //  Graph responses often include useful request IDs in headers.
-            //  If you paste these IDs into logs/tickets, admins can trace the call.
+            // request-id is commonly present; x-ms-ags-diagnostic sometimes contains helpful JSON too.
             var requestId = TryGetHeader(resp, "request-id") ?? TryGetHeader(resp, "x-ms-ags-diagnostic");
             return new GraphRequestException(stage, statusCode, message, requestId, clientRequestId, responseBody);
         }
 
-        private static string? TryGetHeader(HttpResponseMessage? resp, string name)
+        private static string TryGetHeader(HttpResponseMessage resp, string name)
         {
             if (resp == null) return null;
-            if (!resp.Headers.TryGetValues(name, out var values)) return null;
+            IEnumerable<string> values;
+            if (!resp.Headers.TryGetValues(name, out values)) return null;
             foreach (var v in values) return v;
             return null;
         }
 
-        private static async Task<string> ReadStringSafeAsync(HttpResponseMessage resp, CancellationToken ct)
+        private static Task<byte[]> ReadAllBytesAsync(string path, CancellationToken ct)
+        {
+            // net48 safe approach: run file IO on a worker thread.
+            return Task.Run(() => File.ReadAllBytes(path), ct);
+        }
+
+        private static Task WriteAllBytesAsync(string path, byte[] bytes, CancellationToken ct)
+        {
+            // net48 safe approach: run file IO on a worker thread.
+            return Task.Run(() => File.WriteAllBytes(path, bytes), ct);
+        }
+
+        private static async Task<string> ReadStringSafeAsync(HttpResponseMessage resp)
         {
             try
             {
-                // In .NET 4.8, ReadAsStringAsync() doesn’t accept CancellationToken.
-                // Cancellation is already honored for SendAsync; this is best-effort.
                 return await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
             }
             catch
             {
                 return "";
             }
-        }
-
-        private static Task<byte[]> ReadAllBytesAsync(string path, CancellationToken ct)
-        {
-            // net48 safe approach
-            return Task.Run(() => File.ReadAllBytes(path), ct);
-        }
-
-        private static Task WriteAllBytesAsync(string path, byte[] bytes, CancellationToken ct)
-        {
-            // net48 safe approach
-            return Task.Run(() => File.WriteAllBytes(path, bytes), ct);
         }
 
         // -----------------------------
@@ -543,11 +563,20 @@ namespace GraphLib.Core
             sw.Stop();
             r.Elapsed = sw.Elapsed;
             r.FinishedUtc = DateTimeOffset.UtcNow;
-            r.AddLog(LogLevel.Info, GraphStage.Done, $"Done in {(int)r.Elapsed.TotalMilliseconds}ms.");
+            r.AddLog(LogLevel.Info, GraphStage.Done, "Done in " + (int)r.Elapsed.TotalMilliseconds + "ms.");
+
+            // Report summary fields (nice for JSON dumps)
+            if (r.Report != null)
+            {
+                r.Report.Success = r.Success;
+                r.Report.ElapsedMs = (long)r.Elapsed.TotalMilliseconds;
+                r.Report.FinishedUtc = r.FinishedUtc;
+            }
+
             return r;
         }
 
-        private GraphLibRunResult FailEarly(GraphLibRunResult r, string stage, string message, Stopwatch sw, Exception? ex = null)
+        private GraphLibRunResult FailEarly(GraphLibRunResult r, string stage, string message, Stopwatch sw, Exception ex = null)
         {
             r.Success = false;
             r.Summary = "FAIL " + message;
@@ -560,8 +589,15 @@ namespace GraphLib.Core
             r.Elapsed = sw.Elapsed;
             r.FinishedUtc = DateTimeOffset.UtcNow;
 
-            // Joke for dev morale (and to appease the ancient gods of build stability):
-            // If you can read this, you have already angered the printer driver spirits. Offer them a PDF.
+            if (r.Report != null)
+            {
+                r.Report.Success = false;
+                r.Report.ElapsedMs = (long)r.Elapsed.TotalMilliseconds;
+                r.Report.FailureStage = stage;
+                r.Report.ExceptionType = ex == null ? null : ex.GetType().FullName;
+                r.Report.ExceptionMessage = ex == null ? null : ex.Message;
+                r.Report.FinishedUtc = r.FinishedUtc;
+            }
 
             return r;
         }
@@ -573,41 +609,23 @@ namespace GraphLib.Core
             r.AddLog(LogLevel.Error, stage, message);
             r.AddLog(LogLevel.Error, stage, ex.GetType().Name + ": " + ex.Message);
 
-            // Silent optional logger (SQLite, etc.). Never block success/failure flow.
-            await SafeLogErrorAsync(r.RunId, stage, message, ex, ct).ConfigureAwait(false);
-
             sw.Stop();
             r.Elapsed = sw.Elapsed;
             r.FinishedUtc = DateTimeOffset.UtcNow;
+
+            if (r.Report != null)
+            {
+                r.Report.Success = false;
+                r.Report.ElapsedMs = (long)r.Elapsed.TotalMilliseconds;
+                r.Report.FailureStage = stage;
+                r.Report.ExceptionType = ex.GetType().FullName;
+                r.Report.ExceptionMessage = ex.Message;
+                r.Report.FinishedUtc = r.FinishedUtc;
+            }
+
+            // No SQLite, no external logging. Keep behavior simple.
+            await Task.CompletedTask.ConfigureAwait(false);
             return r;
-        }
-
-        private async Task SafeLogErrorAsync(
-            string runId,
-            string stage,
-            string message,
-            Exception ex,
-            CancellationToken ct,
-            [CallerFilePath] string callerFile = "",
-            [CallerMemberName] string callerMember = "")
-        {
-            if (_errorLogger == null) return;
-
-            try
-            {
-                await _errorLogger.LogErrorAsync(
-                    runId: runId,
-                    stage: stage,
-                    message: message,
-                    exception: ex,
-                    callerFilePath: callerFile,
-                    callerMemberName: callerMember,
-                    ct: ct).ConfigureAwait(false);
-            }
-            catch
-            {
-                // Must NEVER interfere with basic operation.
-            }
         }
 
         // -----------------------------
@@ -615,7 +633,7 @@ namespace GraphLib.Core
         // (intentionally minimal for “single file drop-in”)
         // -----------------------------
 
-        private static string? JsonPickString(string json, string propertyName)
+        private static string JsonPickString(string json, string propertyName)
         {
             if (string.IsNullOrWhiteSpace(json) || string.IsNullOrWhiteSpace(propertyName)) return null;
 
@@ -643,7 +661,7 @@ namespace GraphLib.Core
             return UnescapeJsonString(json.Substring(start, i - start));
         }
 
-        private static string? JsonFindDriveIdByName(string json, string driveName)
+        private static string JsonFindDriveIdByName(string json, string driveName)
         {
             if (string.IsNullOrWhiteSpace(json) || string.IsNullOrWhiteSpace(driveName)) return null;
 
@@ -717,10 +735,23 @@ namespace GraphLib.Core
             }
             return sb.ToString();
         }
+
+        // Small helper type for TryGetAsync (C# 7.3-friendly, no tuples required)
+        private sealed class TryGetResult
+        {
+            public readonly bool Exists;
+            public readonly string Body;
+
+            public TryGetResult(bool exists, string body)
+            {
+                Exists = exists;
+                Body = body;
+            }
+        }
     }
 
     // ---------------------------------------------------------------------------------
-    // Naming-convention-friendly models (lightweight net48 versions)
+    // Models (C# 7.3 friendly)
     // ---------------------------------------------------------------------------------
 
     public static class GraphStage
@@ -733,7 +764,6 @@ namespace GraphLib.Core
         public const string Upload = "upload";
         public const string Convert = "convert";
 
-        // New stages for the new behavior
         public const string SavePdfSharePoint = "save_pdf_sharepoint";
         public const string SavePdfLocal = "save_pdf_local";
 
@@ -775,55 +805,194 @@ namespace GraphLib.Core
     public sealed class GraphLibSettings
     {
         // SharePoint targeting
-        public string SiteUrl { get; set; } = "";
-        public string LibraryName { get; set; } = "Documents";
-        public string TempFolder { get; set; } = "_graphlib-temp";
+        public string SiteUrl { get; set; }
+        public string LibraryName { get; set; }
+        public string TempFolder { get; set; }
 
         // Auth (app-only)
-        public string TenantId { get; set; } = "";
-        public string ClientId { get; set; } = "";
-        public string ClientSecret { get; set; } = "";
+        public string TenantId { get; set; }
+        public string ClientId { get; set; }
+        public string ClientSecret { get; set; }
 
         // Upload behavior (source upload)
-        public ConflictBehavior ConflictBehavior { get; set; } = ConflictBehavior.Replace;
+        public ConflictBehavior ConflictBehavior { get; set; }
+
+        public GraphLibSettings()
+        {
+            SiteUrl = "";
+            LibraryName = "Documents";
+            TempFolder = "_graphlib-temp";
+
+            TenantId = "";
+            ClientId = "";
+            ClientSecret = "";
+
+            ConflictBehavior = ConflictBehavior.Replace;
+        }
     }
 
     public sealed class GraphLibLogEntry
     {
         public DateTimeOffset Utc { get; set; }
-        public string Level { get; set; } = LogLevel.Info;
-        public string Stage { get; set; } = GraphStage.Unknown;
-        public string Message { get; set; } = "";
+        public string Level { get; set; }
+        public string Stage { get; set; }
+        public string Message { get; set; }
+
+        public GraphLibLogEntry()
+        {
+            Utc = DateTimeOffset.UtcNow;
+            Level = LogLevel.Info;
+            Stage = GraphStage.Unknown;
+            Message = "";
+        }
+    }
+
+    /// <summary>
+    /// JSON-friendly report object (safe to serialize).
+    ///
+    /// This is meant to be the thing you can dump into a table, log store,
+    /// API response, etc., without having to parse "Logs" or exception types.
+    /// </summary>
+    public sealed class GraphLibReport
+    {
+        // Overall status
+        public bool Success { get; set; }
+        public long ElapsedMs { get; set; }
+        public DateTimeOffset FinishedUtc { get; set; }
+
+        // Inputs
+        public string InputFilePath { get; set; }
+        public string InputFileName { get; set; }
+        public long InputFileBytes { get; set; }
+
+        // Outputs
+        public string OutputPdfFileName { get; set; }
+        public long OutputPdfBytes { get; set; }
+
+        // Local output (what you asked for)
+        public string OutputLocalPdfPath { get; set; }
+        public bool OutputLocalPdfWritten { get; set; }
+
+        // SharePoint/Graph targeting
+        public string SiteUrl { get; set; }
+        public string LibraryName { get; set; }
+        public string TempFolder { get; set; }
+
+        // IDs (useful for troubleshooting)
+        public string SiteId { get; set; }
+        public string DriveId { get; set; }
+        public string SharePointSourceItemId { get; set; }
+        public string SharePointSourceFileName { get; set; }
+        public string SharePointPdfItemId { get; set; }
+
+        // Correlation
+        public string ClientRequestId { get; set; }
+        public string GraphRequestId { get; set; }       // from response headers (request-id or x-ms-ags-diagnostic)
+        public int HttpStatus { get; set; }              // on failures
+        public string FailureStage { get; set; }         // on failures
+        public string GraphResponseBody { get; set; }    // on failures (safe text)
+
+        // Exception summary (on unhandled failures)
+        public string ExceptionType { get; set; }
+        public string ExceptionMessage { get; set; }
+
+        // Toggles snapshot
+        public bool SavePdfToSharePoint { get; set; }
+        public bool SavePdfToLocalDisk { get; set; }
+        public bool KeepSourceInSharePoint { get; set; }
+
+        public static GraphLibReport CreateDefault()
+        {
+            return new GraphLibReport
+            {
+                Success = false,
+                ElapsedMs = 0,
+                FinishedUtc = default(DateTimeOffset),
+
+                InputFilePath = "",
+                InputFileName = "",
+                InputFileBytes = 0,
+
+                OutputPdfFileName = "",
+                OutputPdfBytes = 0,
+
+                OutputLocalPdfPath = "",
+                OutputLocalPdfWritten = false,
+
+                SiteUrl = "",
+                LibraryName = "",
+                TempFolder = "",
+
+                SiteId = "",
+                DriveId = "",
+                SharePointSourceItemId = "",
+                SharePointSourceFileName = "",
+                SharePointPdfItemId = "",
+
+                ClientRequestId = "",
+                GraphRequestId = "",
+                HttpStatus = 0,
+                FailureStage = "",
+                GraphResponseBody = "",
+
+                ExceptionType = "",
+                ExceptionMessage = "",
+
+                SavePdfToSharePoint = false,
+                SavePdfToLocalDisk = false,
+                KeepSourceInSharePoint = true
+            };
+        }
     }
 
     public sealed class GraphLibRunResult
     {
-        public string RunId { get; set; } = Guid.NewGuid().ToString("D");
+        public string RunId { get; set; }
         public bool Success { get; set; }
-        public string Summary { get; set; } = "";
+        public string Summary { get; set; }
 
-        public DateTimeOffset StartedUtc { get; set; } = DateTimeOffset.UtcNow;
+        public DateTimeOffset StartedUtc { get; set; }
         public DateTimeOffset FinishedUtc { get; set; }
 
         public TimeSpan Elapsed { get; set; }
 
         public long InputBytes { get; set; }
 
-        // Keep both raw bytes and length; some callers prefer one or the other.
-        public byte[] PdfBytes { get; set; } = Array.Empty<byte>();
+        // In-memory PDF bytes
+        public byte[] PdfBytes { get; set; }
         public long PdfBytesLength { get; set; }
 
-        // New: where we wrote the PDF locally (if enabled)
-        public string? LocalPdfPath { get; set; }
+        // New: output locations / IDs
+        public string LocalPdfPath { get; set; }
+        public string SharePointPdfItemId { get; set; }
 
-        // New: SharePoint item id for the generated PDF (if enabled)
-        public string? SharePointPdfItemId { get; set; }
+        // New: JSON-friendly report object
+        public GraphLibReport Report { get; set; }
 
-        /// <summary>
-        /// Lightweight in-memory logs so callers can surface what happened
-        /// without needing the full DB pipeline.
-        /// </summary>
-        public List<GraphLibLogEntry> Logs { get; } = new List<GraphLibLogEntry>();
+        // In-memory log timeline
+        public List<GraphLibLogEntry> Logs { get; private set; }
+
+        public GraphLibRunResult()
+        {
+            RunId = Guid.NewGuid().ToString("D");
+            Success = false;
+            Summary = "";
+
+            StartedUtc = DateTimeOffset.UtcNow;
+            FinishedUtc = default(DateTimeOffset);
+            Elapsed = TimeSpan.Zero;
+
+            InputBytes = 0;
+
+            PdfBytes = new byte[0];
+            PdfBytesLength = 0;
+
+            LocalPdfPath = "";
+            SharePointPdfItemId = "";
+
+            Report = null; // set by runner
+            Logs = new List<GraphLibLogEntry>();
+        }
 
         public void AddLog(string level, string stage, string message)
         {
@@ -842,20 +1011,20 @@ namespace GraphLib.Core
     /// </summary>
     public sealed class GraphRequestException : Exception
     {
-        public string Stage { get; }
-        public HttpStatusCode StatusCode { get; }
-        public string? RequestId { get; }
-        public string? ClientRequestId { get; }
-        public string? ResponseBody { get; }
+        public string Stage { get; private set; }
+        public HttpStatusCode StatusCode { get; private set; }
+        public string RequestId { get; private set; }
+        public string ClientRequestId { get; private set; }
+        public string ResponseBody { get; private set; }
 
         public GraphRequestException(
             string stage,
             HttpStatusCode statusCode,
             string message,
-            string? requestId,
-            string? clientRequestId,
-            string? responseBody,
-            Exception? inner = null)
+            string requestId,
+            string clientRequestId,
+            string responseBody,
+            Exception inner = null)
             : base(message, inner)
         {
             Stage = stage;
@@ -863,122 +1032,6 @@ namespace GraphLib.Core
             RequestId = requestId;
             ClientRequestId = clientRequestId;
             ResponseBody = responseBody;
-        }
-    }
-
-    // ---------------------------------------------------------------------------------
-    // Optional: Silent SQLite error logging (separate reusable class)
-    // ---------------------------------------------------------------------------------
-
-    public interface IGraphLibErrorLogger
-    {
-        Task LogErrorAsync(
-            string runId,
-            string stage,
-            string message,
-            Exception exception,
-            string callerFilePath,
-            string callerMemberName,
-            CancellationToken ct);
-    }
-
-    /// <summary>
-    /// Optional "zero-setup" SQLite error logger:
-    /// - Creates a db file under LocalAppData automatically.
-    /// - Creates the table automatically.
-    /// - Swallows ALL exceptions (never interferes with GraphLib operation).
-    /// - Stores no credentials, only error metadata + stack traces.
-    ///
-    /// If you cannot use SQLite packages in your corp environment, just don't pass this logger.
-    /// </summary>
-    public sealed class GraphLibSqliteErrorLogger : IGraphLibErrorLogger
-    {
-        private readonly string _dbPath;
-
-        public GraphLibSqliteErrorLogger(string? dbPath = null)
-        {
-            _dbPath = string.IsNullOrWhiteSpace(dbPath)
-                ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "GraphLib", "GraphLib.Errors.db")
-                : dbPath!;
-        }
-
-        public async Task LogErrorAsync(
-            string runId,
-            string stage,
-            string message,
-            Exception exception,
-            string callerFilePath,
-            string callerMemberName,
-            CancellationToken ct)
-        {
-            try
-            {
-                EnsureFolderExists(Path.GetDirectoryName(_dbPath));
-
-                // If you don’t want the Microsoft.Data.Sqlite dependency, remove this class entirely.
-                // Requires: using Microsoft.Data.Sqlite;
-
-                /*
-                var cs = new SqliteConnectionStringBuilder { DataSource = _dbPath }.ToString();
-                using (var conn = new SqliteConnection(cs))
-                {
-                    await conn.OpenAsync(ct).ConfigureAwait(false);
-
-                    using (var cmd = conn.CreateCommand())
-                    {
-                        cmd.CommandText =
-@"CREATE TABLE IF NOT EXISTS ErrorLogs (
-  Id INTEGER PRIMARY KEY AUTOINCREMENT,
-  Utc TEXT NOT NULL,
-  RunId TEXT,
-  Stage TEXT,
-  Level TEXT,
-  Message TEXT,
-  ExceptionType TEXT,
-  ExceptionMessage TEXT,
-  StackTrace TEXT,
-  CallerFile TEXT,
-  CallerMember TEXT
-);";
-                        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
-                    }
-
-                    using (var cmd = conn.CreateCommand())
-                    {
-                        cmd.CommandText =
-@"INSERT INTO ErrorLogs
-(Utc, RunId, Stage, Level, Message, ExceptionType, ExceptionMessage, StackTrace, CallerFile, CallerMember)
-VALUES
-($Utc, $RunId, $Stage, $Level, $Message, $ExceptionType, $ExceptionMessage, $StackTrace, $CallerFile, $CallerMember);";
-
-                        cmd.Parameters.AddWithValue("$Utc", DateTimeOffset.UtcNow.ToString("o"));
-                        cmd.Parameters.AddWithValue("$RunId", runId ?? "");
-                        cmd.Parameters.AddWithValue("$Stage", stage ?? "");
-                        cmd.Parameters.AddWithValue("$Level", LogLevel.Error);
-                        cmd.Parameters.AddWithValue("$Message", message ?? "");
-                        cmd.Parameters.AddWithValue("$ExceptionType", exception.GetType().FullName ?? exception.GetType().Name);
-                        cmd.Parameters.AddWithValue("$ExceptionMessage", exception.Message ?? "");
-                        cmd.Parameters.AddWithValue("$StackTrace", exception.ToString());
-                        cmd.Parameters.AddWithValue("$CallerFile", callerFilePath ?? "");
-                        cmd.Parameters.AddWithValue("$CallerMember", callerMemberName ?? "");
-
-                        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
-                    }
-                }
-                */
-
-                await Task.CompletedTask.ConfigureAwait(false);
-            }
-            catch
-            {
-                // Swallow everything. Logging must be "best effort".
-            }
-        }
-
-        private static void EnsureFolderExists(string? folder)
-        {
-            if (string.IsNullOrWhiteSpace(folder)) return;
-            if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
         }
     }
 }
