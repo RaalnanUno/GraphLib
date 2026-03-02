@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>VB.NET 4.0 Modernization: Upgrade vs Rewrite (Boss-Friendly)</title>
+
+    <!-- Lightweight styling (no build needed) -->
+    <style>
+      :root {
+        --bg: #0b1220;
+        --card: #111a2e;
+        --text: #e7eefc;
+        --muted: #b7c3dd;
+        --accent: #6aa6ff;
+        --ok: #3ddc97;
+        --warn: #ffcc66;
+        --bad: #ff6b6b;
+        --border: rgba(255, 255, 255, 0.12);
+      }
+      body {
+        margin: 0;
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          "Apple Color Emoji",
+          "Segoe UI Emoji";
+        background: radial-gradient(
+          1200px 700px at 20% 0%,
+          #17264a 0%,
+          var(--bg) 55%
+        );
+        color: var(--text);
+        line-height: 1.45;
+      }
+      header {
+        padding: 28px 18px 8px;
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 28px;
+        letter-spacing: 0.2px;
+      }
+      .subtitle {
+        color: var(--muted);
+        margin: 0;
+        max-width: 75ch;
+      }
+      main {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 18px;
+        display: grid;
+        gap: 16px;
+      }
+      .grid {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: repeat(12, 1fr);
+      }
+      .card {
+        background: rgba(17, 26, 46, 0.85);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 16px 16px 14px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+      }
+      .span-12 {
+        grid-column: span 12;
+      }
+      .span-7 {
+        grid-column: span 7;
+      }
+      .span-5 {
+        grid-column: span 5;
+      }
+      @media (max-width: 980px) {
+        .span-7,
+        .span-5 {
+          grid-column: span 12;
+        }
+      }
+
+      h2 {
+        margin: 0 0 10px;
+        font-size: 18px;
+        letter-spacing: 0.2px;
+      }
+      h3 {
+        margin: 14px 0 8px;
+        font-size: 15px;
+        color: var(--text);
+      }
+      p,
+      li {
+        color: var(--muted);
+      }
+      ul {
+        margin: 8px 0 0 18px;
+        padding: 0;
+      }
+      .pill {
+        display: inline-block;
+        font-size: 12px;
+        padding: 3px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        color: var(--muted);
+        margin-right: 8px;
+        margin-bottom: 8px;
+      }
+      .pill.ok {
+        color: var(--ok);
+        border-color: rgba(61, 220, 151, 0.35);
+      }
+      .pill.warn {
+        color: var(--warn);
+        border-color: rgba(255, 204, 102, 0.35);
+      }
+      .pill.bad {
+        color: var(--bad);
+        border-color: rgba(255, 107, 107, 0.35);
+      }
+
+      .callout {
+        border-left: 3px solid var(--accent);
+        padding: 10px 12px;
+        background: rgba(106, 166, 255, 0.08);
+        border-radius: 10px;
+        margin-top: 10px;
+      }
+      a {
+        color: #9cc4ff;
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      .links li {
+        margin: 8px 0;
+      }
+      .tiny {
+        font-size: 12px;
+        color: var(--muted);
+        opacity: 0.95;
+      }
+      code {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1px 6px;
+        color: var(--text);
+      }
+
+      /* Mermaid container */
+      .mermaid {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 10px;
+        overflow-x: auto;
+      }
+    </style>
+
+    <!-- Mermaid -->
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "dark" });
+    </script>
+  </head>
+
+  <body>
+    <header>
+      <h1>VB.NET 4.0 Modernization: Upgrade vs Rewrite</h1>
+      <p class="subtitle">
+        Goal: explain (quickly) why “move to a higher .NET” sometimes means a
+        simple upgrade, and other times means a true rewrite / re-platform.
+      </p>
+    </header>
+
+    <main>
+      <section class="grid">
+        <div class="card span-12">
+          <h2>Executive Summary (60 seconds)</h2>
+          <div>
+            <span class="pill ok">Not always a rewrite</span>
+            <span class="pill warn">Depends what “higher .NET” means</span>
+            <span class="pill bad"
+              >Some legacy tech has no direct path to modern .NET</span
+            >
+          </div>
+
+          <ul>
+            <li>
+              If the target is <b>.NET Framework 4.8/4.8.1</b> (still
+              Windows-only), many VB.NET 4.0 apps can be upgraded with limited
+              changes (re-targeting + compatibility fixes). See Microsoft’s
+              migration resources:
+              <a
+                href="https://learn.microsoft.com/en-us/dotnet/framework/migration-guide/"
+                target="_blank"
+                rel="noreferrer"
+                >.NET Framework Migration Guide</a
+              >.
+              <!-- source: turn0search6 -->
+            </li>
+            <li>
+              If the target is <b>modern .NET (6/8/“Core”)</b>, then certain app
+              types/features (notably <b>ASP.NET Web Forms</b>) are not
+              supported, and a rewrite/migration to a different framework (often
+              C# + ASP.NET Core) becomes necessary. Example Microsoft Learn
+              answer:
+              <a
+                href="https://learn.microsoft.com/en-us/answers/questions/1526733/support-of-webforms-aspx-pages-in-core"
+                target="_blank"
+                rel="noreferrer"
+                >Web Forms not supported in .NET (Core)</a
+              >.
+              <!-- source: turn0search3 -->
+            </li>
+            <li>
+              Microsoft provides tooling (Upgrade Assistant) to help, but it
+              flags incompatibilities and doesn’t magically “port” everything:
+              <a
+                href="https://learn.microsoft.com/en-us/dotnet/core/porting/upgrade-assistant-overview"
+                target="_blank"
+                rel="noreferrer"
+                >.NET Upgrade Assistant overview</a
+              >.
+              <!-- source: turn0search2 -->
+            </li>
+          </ul>
+
+          <div class="callout">
+            <b>Key point for leadership:</b> This is not “developers wanting to
+            rewrite for fun.” It’s about whether the desired platform target is
+            compatible with the current app model/tech stack.
+          </div>
+        </div>
+
+        <div class="card span-12">
+          <h2>Decision Tree (Mermaid)</h2>
+
+<div class="mermaid">
+flowchart TD
+  A["Current app: VB.NET on .NET Framework 4.0"] --> B{"Target platform?"}
+
+  B -->|"Stay on .NET Framework"| C["Upgrade to .NET Framework 4.8 / 4.8.1"]
+  C --> C1["Open/build in Visual Studio 2022"]
+  C1 --> C2["Fix compatibility issues & dependencies"]
+  C2 --> C3["Minimal change path (often weeks, not months)"]
+
+  B -->|"Move to modern .NET (6/8+)"| D{"App type / tech?"}
+  D -->|"WinForms"| E["Possible migration to modern .NET<br>but may be non-trivial"]
+  D -->|"WPF"| F["Needs C# for modern direction<br>(VB tooling/story is limited)"]
+  D -->|"ASP.NET Web Forms"| G["No direct support in ASP.NET Core / modern .NET"]
+  G --> H["Rewrite UI / web layer<br>(ASP.NET Core / Blazor / React, etc.)"]
+  H --> I["Incremental migration recommended:<br>extract business logic, then replace UI"]
+
+  D -->|"Legacy dependencies (Remoting/WCF server/etc.)"| J["Refactor / replace incompatible APIs"]
+</div>
+
+          <p class="tiny">
+            This diagram is intentionally high-level: the real driver is the
+            <b>target runtime</b> and the <b>app type</b>.
+          </p>
+        </div>
+
+        <div class="card span-12">
+          <h2>What “Rewrite” Usually Means (Practical)</h2>
+          <ul>
+            <li>
+              <b>Not</b> “throw everything away.” Usually: keep business rules,
+              rebuild the platform edges (UI/web/service).
+            </li>
+            <li>
+              Most teams do this as a <b>phased modernization</b>:
+              <ul>
+                <li>
+                  Phase 1: Stabilize on .NET Framework 4.8 (if allowed) + tests
+                </li>
+                <li>Phase 2: Extract business logic into libraries</li>
+                <li>Phase 3: Rebuild UI/service layer on modern .NET</li>
+              </ul>
+            </li>
+            <li>
+              Tooling helps, but doesn’t eliminate engineering effort:
+              <a
+                href="https://learn.microsoft.com/en-us/dotnet/core/porting/upgrade-assistant-overview"
+                target="_blank"
+                rel="noreferrer"
+                >Upgrade Assistant</a
+              >.
+              <!-- source: turn0search2 -->
+            </li>
+          </ul>
+
+          <div class="callout">
+            <b>Boss translation:</b> “Rewrite” is often a controlled migration
+            to reduce security and maintenance risk, not a “start over” event.
+          </div>
+        </div>
+
+        <div class="card span-12">
+          <h2>Why a Rewrite May Be Required (Non-negotiables)</h2>
+
+          <h3>1) Some legacy frameworks don’t run on modern .NET</h3>
+          <ul>
+            <li>
+              <b>ASP.NET Web Forms</b> is a common hard stop. Microsoft Learn
+              staff and community answers state Web Forms is only available on
+              .NET Framework, not ASP.NET Core / modern .NET:
+              <a
+                href="https://learn.microsoft.com/en-us/answers/questions/1230657/does-asp-net-core-and-net-framework-asp-net-web-ap"
+                target="_blank"
+                rel="noreferrer"
+                >Web Forms only in .NET Framework</a
+              >.
+              <!-- source: turn0search11 -->
+            </li>
+          </ul>
+
+          <h3>2) VB.NET is not the growth path in the modern ecosystem</h3>
+          <ul>
+            <li>
+              Microsoft has publicly signaled that Visual Basic will not receive
+              new language features (maintenance posture). Example coverage
+              referencing Microsoft’s stance:
+              <a
+                href="https://www.businessinsider.com/microsoft-new-language-features-visual-basic-bill-gates-2020-4"
+                target="_blank"
+                rel="noreferrer"
+                >Business Insider summary</a
+              >.
+              <!-- source: turn0search1 -->
+            </li>
+            <li>
+              For certain modern project types, VB simply isn’t a first-class
+              option, pushing teams toward C# for long-term supportability.
+              (Even VB community discussions highlight gaps):
+              <a
+                href="https://github.com/dotnet/vblang/issues/620"
+                target="_blank"
+                rel="noreferrer"
+                >dotnet/vblang discussion</a
+              >.
+              <!-- source: turn0search8 -->
+            </li>
+          </ul>
+
+          <h3>3) “Upgrade tools” reduce friction, not complexity</h3>
+          <ul>
+            <li>
+              Upgrade Assistant helps identify & address incompatibilities, but
+              you still must resolve code/dependency differences:
+              <a
+                href="https://learn.microsoft.com/en-us/dotnet/core/porting/upgrade-assistant-overview"
+                target="_blank"
+                rel="noreferrer"
+                >Upgrade Assistant overview</a
+              >.
+              <!-- source: turn0search2 -->
+            </li>
+            <li>
+              Microsoft also publishes planning guidance for porting from .NET
+              Framework to modern .NET:
+              <a
+                href="https://learn.microsoft.com/en-us/dotnet/core/porting/"
+                target="_blank"
+                rel="noreferrer"
+                >Upgrade .NET apps overview</a
+              >
+              and
+              <a
+                href="https://learn.microsoft.com/en-us/dotnet/core/porting/framework-overview"
+                target="_blank"
+                rel="noreferrer"
+                >Porting overview</a
+              >.
+              <!-- sources: turn0search10, turn0search14 -->
+            </li>
+          </ul>
+        </div>
+
+        <div class="card span-12">
+          <h2>Reference Links (Send to Leadership)</h2>
+          <ul class="links">
+            <li>
+              <b>.NET Upgrade Assistant (Microsoft Docs):</b>
+              <a
+                href="https://learn.microsoft.com/en-us/dotnet/core/porting/upgrade-assistant-overview"
+                target="_blank"
+                rel="noreferrer"
+              >
+                https://learn.microsoft.com/en-us/dotnet/core/porting/upgrade-assistant-overview
+              </a>
+              <!-- source: turn0search2 -->
+            </li>
+            <li>
+              <b>Upgrade/porting guidance (Microsoft Docs):</b>
+              <a
+                href="https://learn.microsoft.com/en-us/dotnet/core/porting/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                https://learn.microsoft.com/en-us/dotnet/core/porting/
+              </a>
+              <!-- source: turn0search10 -->
+              &nbsp;and&nbsp;
+              <a
+                href="https://learn.microsoft.com/en-us/dotnet/core/porting/framework-overview"
+                target="_blank"
+                rel="noreferrer"
+              >
+                https://learn.microsoft.com/en-us/dotnet/core/porting/framework-overview
+              </a>
+              <!-- source: turn0search14 -->
+            </li>
+            <li>
+              <b>.NET Framework migration guide (Microsoft Docs):</b>
+              <a
+                href="https://learn.microsoft.com/en-us/dotnet/framework/migration-guide/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                https://learn.microsoft.com/en-us/dotnet/framework/migration-guide/
+              </a>
+              <!-- source: turn0search6 -->
+            </li>
+            <li>
+              <b
+                >Web Forms not supported in .NET (Core) (Microsoft Learn
+                Q&A):</b
+              >
+              <a
+                href="https://learn.microsoft.com/en-us/answers/questions/1526733/support-of-webforms-aspx-pages-in-core"
+                target="_blank"
+                rel="noreferrer"
+              >
+                https://learn.microsoft.com/en-us/answers/questions/1526733/support-of-webforms-aspx-pages-in-core
+              </a>
+              <!-- source: turn0search3 -->
+            </li>
+            <li>
+              <b
+                >Web Forms only available in .NET Framework (Microsoft Learn
+                Q&A):</b
+              >
+              <a
+                href="https://learn.microsoft.com/en-us/answers/questions/1230657/does-asp-net-core-and-net-framework-asp-net-web-ap"
+                target="_blank"
+                rel="noreferrer"
+              >
+                https://learn.microsoft.com/en-us/answers/questions/1230657/does-asp-net-core-and-net-framework-asp-net-web-ap
+              </a>
+              <!-- source: turn0search11 -->
+            </li>
+            <li>
+              <b
+                >VB language posture (public reporting referencing Microsoft
+                stance):</b
+              >
+              <a
+                href="https://www.businessinsider.com/microsoft-new-language-features-visual-basic-bill-gates-2020-4"
+                target="_blank"
+                rel="noreferrer"
+              >
+                https://www.businessinsider.com/microsoft-new-language-features-visual-basic-bill-gates-2020-4
+              </a>
+              <!-- source: turn0search1 -->
+            </li>
+            <li>
+              <b>VB community discussion on support gaps (dotnet/vblang):</b>
+              <a
+                href="https://github.com/dotnet/vblang/issues/620"
+                target="_blank"
+                rel="noreferrer"
+              >
+                https://github.com/dotnet/vblang/issues/620
+              </a>
+              <!-- source: turn0search8 -->
+            </li>
+          </ul>
+
+          <div class="callout">
+            <b>Optional “one-liner” for your boss:</b><br />
+            If the business target is modern .NET (6/8+), and the app uses Web
+            Forms or other Framework-only tech, then upgrading isn’t a “version
+            bump” — it’s a platform migration that requires re-implementing
+            unsupported parts.
+          </div>
+
+          <p class="tiny">
+            Tip: paste this page into an internal wiki / SharePoint page.
+            Mermaid should render anywhere that allows the CDN script. If
+            scripts are blocked, the links + bullet summaries still carry the
+            argument.
+          </p>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
